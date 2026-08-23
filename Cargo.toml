@@ -6,203 +6,203 @@ workspace = "../Helio"
 
 [[bin]]
 name = "render_v2_basic"
-path = "render_v2_basic.rs"
+path = "basic/render_v2_basic.rs"
 
 [[bin]]
 name = "render_v2_sky"
-path = "render_v2_sky.rs"
+path = "indoor/render_v2_sky.rs"
 
 [[bin]]
 name = "debug_shapes"
-path = "debug_shapes.rs"
+path = "basic/debug_shapes.rs"
 
 [[bin]]
 name = "indoor_room"
-path = "indoor_room.rs"
+path = "indoor/indoor_room.rs"
 
 [[bin]]
 name = "indoor_corridor"
-path = "indoor_corridor.rs"
+path = "indoor/indoor_corridor.rs"
 
 [[bin]]
 name = "sublevels_demo"
-path = "sublevels_demo.rs"
+path = "basic/sublevels_demo.rs"
 
 [[bin]]
 name = "portals_demo"
-path = "portals_demo.rs"
+path = "portals/portals_demo.rs"
 
 [[bin]]
 name = "infinite_tunnel"
-path = "infinite_tunnel.rs"
+path = "misc/infinite_tunnel.rs"
 
 [[bin]]
 name = "portal_cube"
-path = "portal_cube.rs"
+path = "portals/portal_cube.rs"
 
 [[bin]]
 name = "portal_rooms"
-path = "portal_rooms.rs"
+path = "portals/portal_rooms.rs"
 
 [[bin]]
 name = "portal_rooms_recursive"
-path = "portal_rooms_recursive.rs"
+path = "portals/portal_rooms_recursive.rs"
 
 [[bin]]
 name = "outdoor_night"
-path = "outdoor_night.rs"
+path = "outdoor/outdoor_night.rs"
 
 [[bin]]
 name = "outdoor_canyon"
-path = "outdoor_canyon.rs"
+path = "outdoor/outdoor_canyon.rs"
 
 [[bin]]
 name = "indoor_cathedral"
-path = "indoor_cathedral.rs"
+path = "indoor/indoor_cathedral.rs"
 
 [[bin]]
 name = "indoor_cathedral_tsr"
-path = "indoor_cathedral_tsr.rs"
+path = "indoor/indoor_cathedral_tsr.rs"
 
 [[bin]]
 name = "indoor_cathedral_fxaa"
-path = "indoor_cathedral_fxaa.rs"
+path = "indoor/indoor_cathedral_fxaa.rs"
 
 [[bin]]
 name = "indoor_cathedral_fxaa_hlfs"
-path = "indoor_cathedral_fxaa_hlfs.rs"
+path = "indoor/indoor_cathedral_fxaa_hlfs.rs"
 
 [[bin]]
 name = "indoor_cathedral_hlfs"
-path = "indoor_cathedral_hlfs.rs"
+path = "indoor/indoor_cathedral_hlfs.rs"
 
 [[bin]]
 name = "indoor_server_room"
-path = "indoor_server_room.rs"
+path = "indoor/indoor_server_room.rs"
 
 [[bin]]
 name = "outdoor_city"
-path = "outdoor_city.rs"
+path = "outdoor/outdoor_city.rs"
 
 [[bin]]
 name = "outdoor_volcano"
-path = "outdoor_volcano.rs"
+path = "outdoor/outdoor_volcano.rs"
 
 [[bin]]
 name = "space_station"
-path = "space_station.rs"
+path = "misc/space_station.rs"
 
 [[bin]]
 name = "churn_benchmark"
-path = "churn_benchmark.rs"
+path = "benchmarks/churn_benchmark.rs"
 
 [[bin]]
 name = "shape_battle_royale"
-path = "shape_battle_royale.rs"
+path = "physics/shape_battle_royale.rs"
 
 [[bin]]
 name = "rapier_stack"
-path = "rapier_stack.rs"
+path = "physics/rapier_stack.rs"
 
 [[bin]]
 name = "rapier_pendulum"
-path = "rapier_pendulum.rs"
+path = "physics/rapier_pendulum.rs"
 
 [[bin]]
 name = "rapier_collision_groups"
-path = "rapier_collision_groups.rs"
+path = "physics/rapier_collision_groups.rs"
 
 [[bin]]
 name = "rapier_pendulum_line"
-path = "rapier_pendulum_line.rs"
+path = "physics/rapier_pendulum_line.rs"
 
 [[bin]]
 name = "rapier_pendulum_cloth"
-path = "rapier_pendulum_cloth.rs"
+path = "physics/rapier_pendulum_cloth.rs"
 
 [[bin]]
 name = "light_benchmark"
-path = "light_benchmark.rs"
+path = "benchmarks/light_benchmark.rs"
 
 [[bin]]
 name = "rc_benchmark"
-path = "rc_benchmark.rs"
+path = "benchmarks/rc_benchmark.rs"
 
 [[bin]]
 name = "load_fbx"
-path = "load_fbx.rs"
+path = "assets_loaders/load_fbx.rs"
 
 [[bin]]
 name = "load_fbx_embedded"
-path = "load_fbx_embedded.rs"
+path = "assets_loaders/load_fbx_embedded.rs"
 
 [[bin]]
 name = "simple_graph"
-path = "simple_graph.rs"
+path = "basic/simple_graph.rs"
 
 [[bin]]
 name = "bake_simple_cube"
-path = "bake_simple_cube.rs"
+path = "basic/bake_simple_cube.rs"
 
 [[bin]]
 name = "outdoor_rocks"
-path = "outdoor_rocks.rs"
+path = "outdoor/outdoor_rocks.rs"
 
 [[bin]]
 name = "rapier_pendulum_bigcloth"
-path = "rapier_pendulum_bigcloth.rs"
+path = "physics/rapier_pendulum_bigcloth.rs"
 
 [[bin]]
 name = "rapier_salva"
-path = "rapier_salva.rs"
+path = "physics/rapier_salva.rs"
 
 [[bin]]
 name = "indoor_cathedral_water"
-path = "indoor_cathedral_water.rs"
+path = "indoor/indoor_cathedral_water.rs"
 
 [[bin]]
 name = "oil_rig_night"
-path = "oil_rig_night.rs"
+path = "outdoor/oil_rig_night.rs"
 
 [[bin]]
 name = "editor_demo"
-path = "editor_demo.rs"
+path = "editor/editor_demo.rs"
 
 [[bin]]
 name = "editor_demo_mini"
-path = "editor_demo_mini.rs"
+path = "editor/editor_demo_mini.rs"
 
 [[bin]]
 name = "editor_demo_xl"
-path = "editor_demo_xl.rs"
+path = "editor/editor_demo_xl.rs"
 
 [[bin]]
 name = "editor_demo_tsr"
-path = "editor_demo_tsr.rs"
+path = "editor/editor_demo_tsr.rs"
 
 [[bin]]
 name = "meshlet_cull_benchmark"
-path = "meshlet_cull_benchmark.rs"
+path = "benchmarks/meshlet_cull_benchmark.rs"
 
 [[bin]]
 name = "corona_demo"
-path = "corona_demo.rs"
+path = "effects/corona_demo.rs"
 
 [[bin]]
 name = "indoor_cathedral_pp_volumes"
-path = "indoor_cathedral_pp_volumes.rs"
+path = "indoor/indoor_cathedral_pp_volumes.rs"
 
 [[bin]]
 name = "indoor_cathedral_decals"
-path = "indoor_cathedral_decals.rs"
+path = "indoor/indoor_cathedral_decals.rs"
 
 [[bin]]
 name = "volumetric_fog_demo"
-path = "volumetric_fog_demo.rs"
+path = "effects/volumetric_fog_demo.rs"
 
 [[bin]]
 name = "vhs_backrooms"
-path = "vhs_backrooms.rs"
+path = "effects/vhs_backrooms.rs"
 
 [[bin]]
 name = "voxel_demo"
@@ -218,47 +218,47 @@ path = "voxel/raymarch_demo.rs"
 
 [[bin]]
 name = "planet_voxel_demo"
-path = "planet_voxel_demo.rs"
+path = "voxel_extra/planet_voxel_demo.rs"
 
 [[bin]]
 name = "radiant_demo"
-path = "radiant_demo.rs"
+path = "effects/radiant_demo.rs"
 
 [[bin]]
 name = "planar_reflection_demo"
-path = "planar_reflection_demo.rs"
+path = "effects/planar_reflection_demo.rs"
 
 [[bin]]
 name = "builder_demo"
-path = "builder_demo.rs"
+path = "basic/builder_demo.rs"
 
 [[bin]]
 name = "one_million_cubes"
-path = "one_million_cubes.rs"
+path = "benchmarks/one_million_cubes.rs"
 
 [[bin]]
 name = "dof_demo"
-path = "dof_demo.rs"
+path = "effects/dof_demo.rs"
 
 [[bin]]
 name = "lens_flare_demo"
-path = "lens_flare_demo.rs"
+path = "effects/lens_flare_demo.rs"
 
 [[bin]]
 name = "hdr_demo"
-path = "hdr_demo.rs"
+path = "effects/hdr_demo.rs"
 
 [[bin]]
 name = "color_grading_demo"
-path = "color_grading_demo.rs"
+path = "effects/color_grading_demo.rs"
 
 [[bin]]
 name = "ies_demo"
-path = "ies_demo.rs"
+path = "effects/ies_demo.rs"
 
 [[bin]]
 name = "forward_demo"
-path = "forward_demo.rs"
+path = "basic/forward_demo.rs"
 
 [[bin]]
 name = "vr_demo"
@@ -307,20 +307,20 @@ salva3d = { version = "0.9", features = ["dim3", "parry", "rapier"] }
 
 [[bin]]
 name = "sprite_demo"
-path = "sprite_demo.rs"
+path = "sprites/sprite_demo.rs"
 
 [[bin]]
 name = "sprite_stress_test"
-path = "sprite_stress_test.rs"
+path = "sprites/sprite_stress_test.rs"
 
 [[bin]]
 name = "sprite_10m_demo"
-path = "sprite_10m_demo.rs"
+path = "sprites/sprite_10m_demo.rs"
 
 [[bin]]
 name = "sprite_dig_demo"
-path = "sprite_dig_demo.rs"
+path = "sprites/sprite_dig_demo.rs"
 
 [[bin]]
 name = "foliage_demo"
-path = "foliage_demo.rs"
+path = "outdoor/foliage_demo.rs"
