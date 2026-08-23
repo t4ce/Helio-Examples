@@ -43,7 +43,7 @@ use winit::{
 };
 
 // ── Embedded ship asset ───────────────────────────────────────────────────────
-const SHIP_BYTES: &[u8] = include_bytes!("../../test.fbx");
+const SHIP_BYTES: &[u8] = include_bytes!("../assets/models/test.fbx");
 
 // ── Rock scatter parameters ───────────────────────────────────────────────────
 const ROCK_COUNT_PER_TYPE: usize = 30;

@@ -26,7 +26,7 @@ use winit::{
     window::{Window, WindowId},
 };
 
-const EMBEDDED_SCENE_BYTES: &[u8] = include_bytes!("../../test.fbx");
+const EMBEDDED_SCENE_BYTES: &[u8] = include_bytes!("../assets/models/test.fbx");
 
 #[derive(Clone, Copy, Debug)]
 struct SceneBounds {
