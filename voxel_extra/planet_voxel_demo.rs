@@ -1069,12 +1069,7 @@ impl AppState {
         self.yaw -= self.mouse_delta.0 * LOOK_SENSITIVITY;
         self.pitch = (self.pitch - self.mouse_delta.1 * LOOK_SENSITIVITY).clamp(-1.5, 1.5);
         self.mouse_delta = (0.0, 0.0);
-        v3_demo_common::apply_keyboard_look(
-            &self.keys,
-            &mut self.yaw,
-            &mut self.pitch,
-            dt as f32,
-        );
+        v3_demo_common::apply_keyboard_look(&self.keys, &mut self.yaw, &mut self.pitch, dt as f32);
         let orientation = self.orientation();
         let target_speed_mps = if camera_has_movement_input(&self.keys) {
             camera_speed_mps(self.canonical_camera_m, &self.keys)
@@ -1527,19 +1522,12 @@ impl ApplicationHandler for App {
                 .set_planet_frame(PlanetFrameUniform::from_camera(planet, camera, 1))
                 .unwrap();
             renderer.scene_mut().flush();
-            let frame_authority_epoch = renderer
-                .scene()
-                .gpu_scene()
-                .planet_frame_authority_epoch();
+            let frame_authority_epoch = renderer.scene().gpu_scene().planet_frame_authority_epoch();
             let frame_generation = renderer
                 .scene()
                 .gpu_scene()
                 .planet_frame_content_generation();
-            let canonical_frames = renderer
-                .scene()
-                .gpu_scene()
-                .planet_frames()
-                .to_vec();
+            let canonical_frames = renderer.scene().gpu_scene().planet_frames().to_vec();
             let pass = renderer
                 .find_pass_mut::<PlanetaryVoxelRenderPass>()
                 .expect("planetary pass");
@@ -1549,7 +1537,7 @@ impl ApplicationHandler for App {
                 frame_generation,
                 &canonical_frames,
             )
-                .unwrap();
+            .unwrap();
             pass.apply_upload_batch(
                 &device,
                 &queue,

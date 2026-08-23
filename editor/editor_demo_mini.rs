@@ -577,8 +577,8 @@ impl ApplicationHandler for App {
         // spatial relationships). Upload the FBX textures+materials, then
         // create one VG mesh per section so each keeps its own material.
         {
-            let crates_base = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("assets/models/source");
+            let crates_base =
+                std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/models/source");
 
             match load_scene_bytes_with_config(
                 CRATES_FBX,
@@ -603,7 +603,8 @@ impl ApplicationHandler for App {
                     if let Some(sm) = &scene.sectioned_mesh {
                         // One VG mesh per section — each section has its own
                         // material but shares the vertex buffer.
-                        let mut vg_entries: Vec<(helio::VirtualMeshId, helio::MaterialId)> = Vec::new();
+                        let mut vg_entries: Vec<(helio::VirtualMeshId, helio::MaterialId)> =
+                            Vec::new();
                         for sec in &sm.sections {
                             if sec.indices.is_empty() {
                                 continue;

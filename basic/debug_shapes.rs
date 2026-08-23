@@ -291,12 +291,7 @@ impl AppState {
             );
             self.mouse_delta = (0.0, 0.0);
         }
-        v3_demo_common::apply_keyboard_look(
-            &self.keys,
-            &mut self.cam_yaw,
-            &mut self.cam_pitch,
-            dt,
-        );
+        v3_demo_common::apply_keyboard_look(&self.keys, &mut self.cam_yaw, &mut self.cam_pitch, dt);
         let fwd = glam::Vec3::new(self.cam_yaw.sin(), 0.0, -self.cam_yaw.cos());
         let right = glam::Vec3::new(self.cam_yaw.cos(), 0.0, self.cam_yaw.sin());
         let up = glam::Vec3::Y;

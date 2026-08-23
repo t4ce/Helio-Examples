@@ -1279,8 +1279,7 @@ impl AppState {
             let drop_target = renderer
                 .scene()
                 .water_drop_target(self.pool_id, [self.ball_pos.x, self.ball_pos.z]);
-            if let (Ok(target), Some(sim)) =
-                (drop_target, renderer.find_pass_mut::<WaterSimPass>())
+            if let (Ok(target), Some(sim)) = (drop_target, renderer.find_pass_mut::<WaterSimPass>())
             {
                 let _ = sim.add_drop(target, 0.8, 0.15);
             }

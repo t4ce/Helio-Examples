@@ -56,26 +56,24 @@ impl ExamplesHub {
 }
 
 impl eframe::App for ExamplesHub {
-    fn update(&mut self, ctx: &eframe::egui::Context, _: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui, _: &mut eframe::Frame) {
         if !self.started_voxel_demo {
             self.started_voxel_demo = true;
             self.launch("heliov_flycam");
         }
 
-        eframe::egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Helio Examples");
-            ui.label("The voxel flycam runs beside this control window.");
-            ui.separator();
-            eframe::egui::ScrollArea::vertical().show(ui, |ui| {
-                for &(label, bin) in DEMOS {
-                    if ui.button(label).clicked() {
-                        self.launch(bin);
-                    }
+        ui.heading("Helio Examples");
+        ui.label("The voxel flycam runs beside this control window.");
+        ui.separator();
+        eframe::egui::ScrollArea::vertical().show(ui, |ui| {
+            for &(label, bin) in DEMOS {
+                if ui.button(label).clicked() {
+                    self.launch(bin);
                 }
-            });
-            ui.separator();
-            ui.small(&self.status);
+            }
         });
+        ui.separator();
+        ui.small(&self.status);
     }
 }
 

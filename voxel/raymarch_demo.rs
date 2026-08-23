@@ -121,12 +121,7 @@ impl AppState {
         self.mouse_delta = (0.0, 0.0);
         self.yaw -= dx * LOOK_SENS;
         self.pitch = (self.pitch - dy * LOOK_SENS).clamp(-1.5, 1.5);
-        v3_demo_common::apply_keyboard_look(
-            &self.keys,
-            &mut self.yaw,
-            &mut self.pitch,
-            dt,
-        );
+        v3_demo_common::apply_keyboard_look(&self.keys, &mut self.yaw, &mut self.pitch, dt);
 
         let orientation = Quat::from_euler(EulerRot::YXZ, self.yaw, self.pitch, 0.0);
         let forward = orientation * -Vec3::Z;
@@ -535,14 +530,9 @@ impl ApplicationHandler for App {
                 let pos = state.cam_pos;
                 let yaw = state.yaw;
                 let pitch = state.pitch;
-                if let Some(range) = AppState::place_edit(
-                    true,
-                    mat,
-                    pos,
-                    yaw,
-                    pitch,
-                    &mut state.world,
-                ) {
+                if let Some(range) =
+                    AppState::place_edit(true, mat, pos, yaw, pitch, &mut state.world)
+                {
                     state
                         .renderer
                         .scene_mut()
@@ -560,14 +550,9 @@ impl ApplicationHandler for App {
                 let pos = state.cam_pos;
                 let yaw = state.yaw;
                 let pitch = state.pitch;
-                if let Some(range) = AppState::place_edit(
-                    false,
-                    mat,
-                    pos,
-                    yaw,
-                    pitch,
-                    &mut state.world,
-                ) {
+                if let Some(range) =
+                    AppState::place_edit(false, mat, pos, yaw, pitch, &mut state.world)
+                {
                     state
                         .renderer
                         .scene_mut()

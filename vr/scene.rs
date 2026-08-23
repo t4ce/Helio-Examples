@@ -516,8 +516,8 @@ fn bay_instancing(renderer: &mut Renderer, z: f32, mats: &Mats) {
 fn load_container(renderer: &mut Renderer) -> Option<(MeshId, MaterialId, Vec3, Vec3)> {
     const CONTAINER_FBX: &[u8] =
         include_bytes!("../assets/models/source/container with textures.fbx");
-    let base_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/models/source");
+    let base_dir =
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/models/source");
 
     let scene = match load_scene_bytes_with_config(
         CONTAINER_FBX,
@@ -987,11 +987,8 @@ pub fn animate(renderer: &mut Renderer, animated: &mut Animated, time: f32) {
             .scene_mut()
             .update_object_transform(*id, Mat4::from_translation(Vec3::new(rest.x, y, rest.z)));
         if y < 0.9 {
-            let drop_target = renderer
-                .scene()
-                .water_drop_target(*water_id, *pool_xz);
-            if let (Ok(target), Some(sim)) =
-                (drop_target, renderer.find_pass_mut::<WaterSimPass>())
+            let drop_target = renderer.scene().water_drop_target(*water_id, *pool_xz);
+            if let (Ok(target), Some(sim)) = (drop_target, renderer.find_pass_mut::<WaterSimPass>())
             {
                 let _ = sim.add_drop(target, 0.5, 0.9);
             }

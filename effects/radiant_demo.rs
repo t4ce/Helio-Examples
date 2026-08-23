@@ -213,7 +213,8 @@ impl ApplicationHandler for App {
 
         // Register transparent version at the gbuffer glass class ID so the
         // transparent pass finds the glass shader instead of falling back to default.
-        let glass_transparent_wgsl = include_str!("../../Helio/assets/templates/glass_transparent.wgsl");
+        let glass_transparent_wgsl =
+            include_str!("../../Helio/assets/templates/glass_transparent.wgsl");
         let glass_transparent_src = renderer
             .transparent_template_registry_mut()
             .compose_transparent_override(glass_transparent_wgsl);
@@ -238,7 +239,8 @@ impl ApplicationHandler for App {
 
         // Also register a transparent water template so the transparent pass
         // renders it with real alpha blending instead of the fixed overlay.
-        let water_transparent_wgsl = include_str!("../../Helio/assets/templates/water_transparent.wgsl");
+        let water_transparent_wgsl =
+            include_str!("../../Helio/assets/templates/water_transparent.wgsl");
         let water_transparent_class = renderer
             .transparent_template_registry_mut()
             .register_transparent_partial_str(
@@ -822,15 +824,19 @@ impl ApplicationHandler for App {
                 );
 
                 // Animate iridescent
-                state.renderer.scene_mut().update_material_class_params(
-                    state.animated_iri_id,
-                    [
-                        3.0 + (t * 0.3).sin() * 2.0,
-                        0.5 + (t * 0.5).sin() * 0.5,
-                        0.0,
-                        0.0,
-                    ],
-                ).unwrap();
+                state
+                    .renderer
+                    .scene_mut()
+                    .update_material_class_params(
+                        state.animated_iri_id,
+                        [
+                            3.0 + (t * 0.3).sin() * 2.0,
+                            0.5 + (t * 0.5).sin() * 0.5,
+                            0.0,
+                            0.0,
+                        ],
+                    )
+                    .unwrap();
 
                 // Animate crystal: cycle internal colour
                 let crystal_tint = [
@@ -838,15 +844,19 @@ impl ApplicationHandler for App {
                     0.2 + (t * 0.9 + 2.0).cos() * 0.3,
                     0.2 + (t * 1.1 + 4.0).cos() * 0.35,
                 ];
-                state.renderer.scene_mut().update_material_class_params(
-                    state.crystal_mat_id,
-                    [
-                        crystal_tint[0],
-                        crystal_tint[1],
-                        crystal_tint[2],
-                        3.0 + (t * 0.5).sin() * 1.5,
-                    ],
-                ).unwrap();
+                state
+                    .renderer
+                    .scene_mut()
+                    .update_material_class_params(
+                        state.crystal_mat_id,
+                        [
+                            crystal_tint[0],
+                            crystal_tint[1],
+                            crystal_tint[2],
+                            3.0 + (t * 0.5).sin() * 1.5,
+                        ],
+                    )
+                    .unwrap();
 
                 // Animate anisotropic: rotate brush direction
                 state

@@ -566,7 +566,11 @@ impl AppState {
             // Connect along the requested horizontal direction with midpoint anchors.
             let local_anchor = direction * (segment_length * 0.5);
             joint.set_local_anchor1(Point::new(local_anchor.x, local_anchor.y, local_anchor.z));
-            joint.set_local_anchor2(Point::new(-local_anchor.x, -local_anchor.y, -local_anchor.z));
+            joint.set_local_anchor2(Point::new(
+                -local_anchor.x,
+                -local_anchor.y,
+                -local_anchor.z,
+            ));
             self.physics_impulse_joints
                 .insert(parent_handle, body_handle, joint, true);
 

@@ -89,11 +89,7 @@ impl App {
         };
 
         // ── 2. Nebula: back-left purple cloud ──────────────────────────────
-        let nebula_pos = [
-            -12.0,
-            2.0 + 1.5 * (t * 0.7).sin(),
-            -12.0,
-        ];
+        let nebula_pos = [-12.0, 2.0 + 1.5 * (t * 0.7).sin(), -12.0];
         let nebula = libhelio::CoronaEmitterDescriptor {
             max_particles: 131_072,
             emit_rate: 3000.0,

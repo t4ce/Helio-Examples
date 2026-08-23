@@ -591,16 +591,18 @@ impl ApplicationHandler for App {
             })
             .expect("foliage material must remain live");
 
-        renderer.scene_mut().add_foliage_layer(FoliageLayer {
-            types: vec![grass],
-            bounds: [
-                glam::Vec3::new(-FIELD_HALF_EXTENT, -1.0, -FIELD_HALF_EXTENT),
-                glam::Vec3::new(FIELD_HALF_EXTENT, 4.0, FIELD_HALF_EXTENT),
-            ],
-            seed: 0x5EED,
-            has_infinite_extent: true,
-        })
-        .expect("foliage layer type must remain live");
+        renderer
+            .scene_mut()
+            .add_foliage_layer(FoliageLayer {
+                types: vec![grass],
+                bounds: [
+                    glam::Vec3::new(-FIELD_HALF_EXTENT, -1.0, -FIELD_HALF_EXTENT),
+                    glam::Vec3::new(FIELD_HALF_EXTENT, 4.0, FIELD_HALF_EXTENT),
+                ],
+                seed: 0x5EED,
+                has_infinite_extent: true,
+            })
+            .expect("foliage layer type must remain live");
 
         let wind_speed = 2.0;
         renderer.scene_mut().set_wind(Wind {
@@ -861,12 +863,7 @@ impl AppState {
         self.cam_yaw += self.mouse_delta.0 * SENS;
         self.cam_pitch = (self.cam_pitch - self.mouse_delta.1 * SENS).clamp(-1.4, 1.4);
         self.mouse_delta = (0.0, 0.0);
-        v3_demo_common::apply_keyboard_look(
-            &self.keys,
-            &mut self.cam_yaw,
-            &mut self.cam_pitch,
-            dt,
-        );
+        v3_demo_common::apply_keyboard_look(&self.keys, &mut self.cam_yaw, &mut self.cam_pitch, dt);
 
         let (sy, cy) = self.cam_yaw.sin_cos();
         let (sp, cp) = self.cam_pitch.sin_cos();

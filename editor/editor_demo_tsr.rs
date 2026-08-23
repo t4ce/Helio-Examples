@@ -554,8 +554,8 @@ impl ApplicationHandler for App {
         // longer clickable/selectable/gizmo-movable in the editor. Every other
         // scene object (cranes, lamps, dock, water, bollards) is unaffected.
         {
-            let crates_base = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("assets/models/source");
+            let crates_base =
+                std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/models/source");
 
             match load_scene_bytes_with_config(
                 CRATES_FBX,
@@ -580,7 +580,8 @@ impl ApplicationHandler for App {
                         // One VG mesh per section — uploaded once, instanced by
                         // every container placement below. Each section keeps
                         // its own material.
-                        let mut vg_entries: Vec<(helio::VirtualMeshId, helio::MaterialId)> = Vec::new();
+                        let mut vg_entries: Vec<(helio::VirtualMeshId, helio::MaterialId)> =
+                            Vec::new();
                         for sec in &sm.sections {
                             if sec.indices.is_empty() {
                                 continue;

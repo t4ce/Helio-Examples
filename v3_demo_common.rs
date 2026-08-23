@@ -1,10 +1,10 @@
 use glam::{Mat4, Vec3};
-use std::collections::HashSet;
-use winit::keyboard::KeyCode;
 use helio::{
     GpuLight, GpuMaterial, LightId, LightType, MaterialId, MeshId, MeshUpload, ObjectDescriptor,
     PackedVertex, Renderer,
 };
+use std::collections::HashSet;
+use winit::keyboard::KeyCode;
 
 /// Apply the shared desktop keyboard-look convention used by the Linux flycam.
 /// I/K pitch, J/L yaw; mouse look remains additive in each demo.

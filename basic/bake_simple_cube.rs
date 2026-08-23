@@ -14,8 +14,8 @@ use std::{
 
 use glam::Vec3;
 use helio::{
-    Camera, DebugCameraUniform, DebugDrawState, Renderer, RendererConfig, Scene,
-    required_experimental_features, required_wgpu_features, required_wgpu_limits,
+    required_experimental_features, required_wgpu_features, required_wgpu_limits, Camera,
+    DebugCameraUniform, DebugDrawState, Renderer, RendererConfig, Scene,
 };
 use helio_artifact::{Artifact, Builder, DynamicSlot, Manifest, SectionKind};
 use helio_default_graphs::build_simple_graph;

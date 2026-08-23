@@ -17,8 +17,8 @@ use v3_demo_common::{
 };
 
 use helio::{
-    Camera, DebugDrawState, MaterialId, MeshId, ObjectId, Renderer, RendererConfig, Scene,
-    required_experimental_features, required_wgpu_features, required_wgpu_limits,
+    required_experimental_features, required_wgpu_features, required_wgpu_limits, Camera,
+    DebugDrawState, MaterialId, MeshId, ObjectId, Renderer, RendererConfig, Scene,
 };
 use helio_default_graphs::build_default_graph;
 use rapier3d::prelude::*;

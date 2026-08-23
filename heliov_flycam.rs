@@ -28,6 +28,7 @@ use helio_controls::WinitFlyInput;
 use helio_default_graphs::build_default_graph;
 use helio_pass_debug_overlay::DebugOverlayState;
 use microfont::{stamp_text, FHEIGHT};
+use rapier3d::prelude::*;
 use v3_demo_common::{box_mesh, make_material};
 use winit::{
     application::ApplicationHandler,
@@ -1678,6 +1679,12 @@ struct ChunkInstance {
     objects: Vec<ObjectId>,
 }
 
+struct TowerBlock {
+    object: ObjectId,
+    body: RigidBodyHandle,
+    visual_scale: Vec3,
+}
+
 fn recycled_chunk_slot(grid_x: i32, grid_z: i32) -> usize {
     grid_x.rem_euclid(FINAL_CHUNK_COLUMNS as i32) as usize
         + grid_z.rem_euclid(FINAL_CHUNK_COLUMNS as i32) as usize * FINAL_CHUNK_COLUMNS
@@ -1941,6 +1948,92 @@ struct BlockShowcase {
     materials: Vec<MaterialId>,
     names: Vec<String>,
     terrain_flower_material: MaterialId,
+}
+
+/// Place a single coarse, physical cobblestone tower in the middle of the four
+/// portal frames.  Its one scene object and one collider keep the demo's
+/// dynamic geometry path intentionally inexpensive.
+fn add_portal_cobblestone_tower(state: &mut AppState, cobblestone_material: MaterialId) {
+    const TOWER_WIDTH: i32 = 3;
+    const TOWER_HEIGHT: i32 = 32; // twice the original 16-layer Rapier stack
+    let center_x = 32i32;
+    let center_z = 32i32;
+    let local_x = (center_x + WORLD_SIDE / 2).rem_euclid(WORLD_SIDE);
+    let local_z = (center_z + WORLD_SIDE / 2).rem_euclid(WORLD_SIDE);
+    let ground_y = (0..WORLD_HEIGHT)
+        .rev()
+        .find(|&y| state.world.get(local_x, y, local_z) != Block::Air)
+        .map(|y| y - WORLD_HEIGHT / 2 + 1)
+        .expect("generated voxel terrain has a ground surface");
+
+    let visual_scale = Vec3::new(TOWER_WIDTH as f32, TOWER_HEIGHT as f32, TOWER_WIDTH as f32);
+    let position = Vec3::new(
+        center_x as f32,
+        ground_y as f32 + visual_scale.y * 0.5,
+        center_z as f32,
+    );
+    let object = state
+        .renderer
+        .scene_mut()
+        .insert_object(ObjectDescriptor {
+            mesh: state.build_cube_mesh,
+            material: cobblestone_material,
+            transform: Mat4::from_translation(position) * Mat4::from_scale(visual_scale),
+            bounds: [position.x, position.y, position.z, 16.3],
+            flags: 0b11,
+            groups: GroupMask::NONE,
+            movability: Some(helio::Movability::Movable),
+            user_tag: u64::MAX - 3,
+        })
+        .expect("insert movable portal cobblestone tower");
+    let body = state.physics_bodies.insert(
+        RigidBodyBuilder::dynamic()
+            .translation(Vector::new(position.x, position.y, position.z))
+            .linear_damping(0.25)
+            .angular_damping(0.35)
+            .build(),
+    );
+    state.physics_colliders.insert_with_parent(
+        ColliderBuilder::cuboid(
+            visual_scale.x * 0.5,
+            visual_scale.y * 0.5,
+            visual_scale.z * 0.5,
+        )
+        .friction(0.85)
+        .restitution(0.04)
+        .build(),
+        body,
+        &mut state.physics_bodies,
+    );
+    state.tower_blocks.push(TowerBlock {
+        object,
+        body,
+        visual_scale,
+    });
+    state
+        .physics_bodies
+        .get_mut(body)
+        .expect("fresh tower body")
+        .apply_impulse(Vector::new(80.0, 0.0, 24.0), true);
+    let ground = state.physics_bodies.insert(
+        RigidBodyBuilder::fixed()
+            .translation(Vector::new(
+                center_x as f32,
+                ground_y as f32 - 0.5,
+                center_z as f32,
+            ))
+            .build(),
+    );
+    state.physics_colliders.insert_with_parent(
+        ColliderBuilder::cuboid(6.0, 0.5, 6.0).friction(0.9).build(),
+        ground,
+        &mut state.physics_bodies,
+    );
+    log::info!(
+        "HelioV portal landmark: one dynamic {}x{} cobblestone tower at ({center_x}, {ground_y}, {center_z})",
+        TOWER_WIDTH,
+        TOWER_HEIGHT
+    );
 }
 
 fn add_block_showcase(renderer: &mut Renderer) -> BlockShowcase {
@@ -2289,6 +2382,17 @@ struct AppState {
     build_material_names: Vec<String>,
     selected_build_material: usize,
     placed_cells: HashSet<[i32; 3]>,
+    tower_blocks: Vec<TowerBlock>,
+    physics_pipeline: PhysicsPipeline,
+    physics_integration: IntegrationParameters,
+    physics_bodies: RigidBodySet,
+    physics_colliders: ColliderSet,
+    physics_islands: IslandManager,
+    physics_broad_phase: DefaultBroadPhase,
+    physics_narrow_phase: NarrowPhase,
+    physics_impulse_joints: ImpulseJointSet,
+    physics_multibody_joints: MultibodyJointSet,
+    physics_ccd: CCDSolver,
     portal_ids: Vec<PortalId>,
     fps_overlay: FpsOverlay,
     status_overlay: StatusOverlay,
@@ -2557,6 +2661,11 @@ impl ApplicationHandler for App {
         }
         renderer.scene_mut().insert_actor(SceneActor::light(sun()));
         let showcase = add_block_showcase(&mut renderer);
+        let cobblestone_material = showcase.materials[showcase
+            .names
+            .iter()
+            .position(|name| name == "cobblestone")
+            .expect("Brixel showcase contains cobblestone")];
         let flower_material = showcase.terrain_flower_material;
         let flower_mesh = terrain_flower_mesh(&world);
         let flower_count = flower_mesh.indices.len() / 12;
@@ -2591,6 +2700,17 @@ impl ApplicationHandler for App {
             build_material_names: showcase.names,
             selected_build_material: 0,
             placed_cells: HashSet::new(),
+            tower_blocks: Vec::new(),
+            physics_pipeline: PhysicsPipeline::new(),
+            physics_integration: IntegrationParameters::default(),
+            physics_bodies: RigidBodySet::new(),
+            physics_colliders: ColliderSet::new(),
+            physics_islands: IslandManager::new(),
+            physics_broad_phase: DefaultBroadPhase::new(),
+            physics_narrow_phase: NarrowPhase::new(),
+            physics_impulse_joints: ImpulseJointSet::new(),
+            physics_multibody_joints: MultibodyJointSet::new(),
+            physics_ccd: CCDSolver::new(),
             portal_ids,
             fps_overlay,
             status_overlay,
@@ -2609,6 +2729,7 @@ impl ApplicationHandler for App {
             graph_rebuild_overlay,
         };
         add_final_chunk_stage(&mut state);
+        add_portal_cobblestone_tower(&mut state, cobblestone_material);
         update_build_selection_title(&state);
         self.state = Some(state);
     }
@@ -2766,6 +2887,7 @@ fn render(state: &mut AppState) {
             break;
         }
     }
+    step_tower_physics(state, dt.min(1.0 / 30.0));
     refresh_recycled_chunks(state);
     refresh_build_outline(state);
     let size = state.window.inner_size();
@@ -2806,6 +2928,45 @@ fn render(state: &mut AppState) {
         state.graph_rebuild_flash_until = Some(Instant::now() + Duration::from_secs(2));
     }
     state.queue.present(output);
+}
+
+fn step_tower_physics(state: &mut AppState, dt: f32) {
+    state.physics_integration.dt = dt;
+    state.physics_pipeline.step(
+        &Vector::new(0.0, -9.81, 0.0),
+        &state.physics_integration,
+        &mut state.physics_islands,
+        &mut state.physics_broad_phase,
+        &mut state.physics_narrow_phase,
+        &mut state.physics_bodies,
+        &mut state.physics_colliders,
+        &mut state.physics_impulse_joints,
+        &mut state.physics_multibody_joints,
+        &mut state.physics_ccd,
+        None,
+        &(),
+        &(),
+    );
+    for block in &state.tower_blocks {
+        let Some(body) = state.physics_bodies.get(block.body) else {
+            continue;
+        };
+        let pose = body.position();
+        let transform = Mat4::from_translation(Vec3::new(
+            pose.translation.x,
+            pose.translation.y,
+            pose.translation.z,
+        )) * Mat4::from_quat(glam::Quat::from_xyzw(
+            pose.rotation.i,
+            pose.rotation.j,
+            pose.rotation.k,
+            pose.rotation.w,
+        )) * Mat4::from_scale(block.visual_scale);
+        let _ = state
+            .renderer
+            .scene_mut()
+            .update_object_transform(block.object, transform);
+    }
 }
 
 fn main() {
