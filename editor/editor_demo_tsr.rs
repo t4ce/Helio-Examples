@@ -1161,6 +1161,12 @@ impl AppState {
                 -std::f32::consts::FRAC_PI_2 * 0.99,
                 std::f32::consts::FRAC_PI_2 * 0.99,
             );
+            v3_demo_common::apply_keyboard_look(
+                &self.keys,
+                &mut self.cam_yaw,
+                &mut self.cam_pitch,
+                dt,
+            );
 
             let (sy, cy) = self.cam_yaw.sin_cos();
             let fwd = glam::Vec3::new(sy, 0.0, -cy);

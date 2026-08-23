@@ -4,6 +4,7 @@
 //!   Mouse click        – grab cursor / look around
 //!   W/A/S/D             – fly
 //!   Space/Shift         – up / down
+//!   I/J/K/L             – look up / left / down / right
 //!   Left mouse button   – add voxel sphere
 //!   Right mouse button  – subtract voxel sphere
 //!   1-4                 – select material (grass/dirt/stone/ore)
@@ -109,6 +110,7 @@ impl AppState {
         self.mouse_delta = (0.0, 0.0);
         self.yaw -= dx * LOOK_SENS;
         self.pitch = (self.pitch - dy * LOOK_SENS).clamp(-1.5, 1.5);
+        v3_demo_common::apply_keyboard_look(&self.keys, &mut self.yaw, &mut self.pitch, dt);
 
         let orientation = Quat::from_euler(EulerRot::YXZ, self.yaw, self.pitch, 0.0);
         let forward = orientation * -Vec3::Z;
@@ -611,3 +613,5 @@ fn main() {
     let mut app = App { state: None };
     event_loop.run_app(&mut app).unwrap();
 }
+#[path = "../v3_demo_common.rs"]
+mod v3_demo_common;

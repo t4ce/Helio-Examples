@@ -8,7 +8,11 @@
 //! Controls:
 //!   WASD / Space / Shift — fly  (5 m/s)
 //!   Mouse drag           — look (click to grab cursor)
+//!   IJKL                 — keyboard look
 //!   Escape               — release cursor / exit
+
+#[path = "../v3_demo_common.rs"]
+mod v3_demo_common;
 
 use helio::{
     required_experimental_features, required_wgpu_features, required_wgpu_limits, Camera,
@@ -287,6 +291,12 @@ impl AppState {
             );
             self.mouse_delta = (0.0, 0.0);
         }
+        v3_demo_common::apply_keyboard_look(
+            &self.keys,
+            &mut self.cam_yaw,
+            &mut self.cam_pitch,
+            dt,
+        );
         let fwd = glam::Vec3::new(self.cam_yaw.sin(), 0.0, -self.cam_yaw.cos());
         let right = glam::Vec3::new(self.cam_yaw.cos(), 0.0, self.cam_yaw.sin());
         let up = glam::Vec3::Y;

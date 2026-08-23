@@ -4,6 +4,9 @@
 //! position/orientation comes straight from OpenXR inside `render_xr`, so this
 //! controller is only consulted for the window mirror camera.
 
+#[path = "../v3_demo_common.rs"]
+mod v3_demo_common;
+
 use std::collections::HashSet;
 
 use glam::{EulerRot, Quat, Vec3};
@@ -55,6 +58,7 @@ impl FreeCam {
         self.mouse_delta = (0.0, 0.0);
         self.yaw -= dx * LOOK_SENS;
         self.pitch = (self.pitch - dy * LOOK_SENS).clamp(-1.5, 1.5);
+        v3_demo_common::apply_keyboard_look(&self.keys, &mut self.yaw, &mut self.pitch, dt);
 
         let orientation = self.orientation();
         let forward = orientation * -Vec3::Z;

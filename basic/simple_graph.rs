@@ -7,7 +7,11 @@
 //!   W/S         – fly forward / backward
 //!   A/D         – strafe
 //!   Space/Shift – fly up / down
+//!   IJKL        – keyboard look
 //!   Escape      – release cursor, second press quits
+
+#[path = "../v3_demo_common.rs"]
+mod v3_demo_common;
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -65,6 +69,7 @@ impl AppState {
         self.mouse_delta = (0.0, 0.0);
         self.yaw -= dx * LOOK_SENS;
         self.pitch = (self.pitch - dy * LOOK_SENS).clamp(-1.5, 1.5);
+        v3_demo_common::apply_keyboard_look(&self.keys, &mut self.yaw, &mut self.pitch, dt);
 
         let orientation = Quat::from_euler(EulerRot::YXZ, self.yaw, self.pitch, 0.0);
         let forward = orientation * -Vec3::Z;

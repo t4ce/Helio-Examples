@@ -11,11 +11,15 @@
 //!   Mouse click        – grab cursor / look around
 //!   W/A/S/D             – fly
 //!   Space/Shift         – up / down
+//!   I/J/K/L             – look up / left / down / right
 //!   Left mouse button   – add voxel sphere
 //!   Right mouse button  – subtract voxel sphere
 //!   1-4                 – select material (grass/dirt/stone/ore)
 //!   R                   – regenerate the world with a new random seed
 //!   Escape              – release cursor / quit
+
+#[path = "../v3_demo_common.rs"]
+mod v3_demo_common;
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -117,6 +121,12 @@ impl AppState {
         self.mouse_delta = (0.0, 0.0);
         self.yaw -= dx * LOOK_SENS;
         self.pitch = (self.pitch - dy * LOOK_SENS).clamp(-1.5, 1.5);
+        v3_demo_common::apply_keyboard_look(
+            &self.keys,
+            &mut self.yaw,
+            &mut self.pitch,
+            dt,
+        );
 
         let orientation = Quat::from_euler(EulerRot::YXZ, self.yaw, self.pitch, 0.0);
         let forward = orientation * -Vec3::Z;

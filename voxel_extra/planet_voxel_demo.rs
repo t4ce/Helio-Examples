@@ -4,6 +4,7 @@
 //!   Mouse click        - capture cursor / look
 //!   W/A/S/D            - move through canonical planet space
 //!   Space/Left Shift   - move up/down
+//!   I/J/K/L             - keyboard look
 //!   Left/Right Control - spacecraft-speed boost
 //!   F2                 - toggle meshlet/page baseline draw path
 //!   F3                 - cycle truthful terrain debug views
@@ -1068,6 +1069,12 @@ impl AppState {
         self.yaw -= self.mouse_delta.0 * LOOK_SENSITIVITY;
         self.pitch = (self.pitch - self.mouse_delta.1 * LOOK_SENSITIVITY).clamp(-1.5, 1.5);
         self.mouse_delta = (0.0, 0.0);
+        v3_demo_common::apply_keyboard_look(
+            &self.keys,
+            &mut self.yaw,
+            &mut self.pitch,
+            dt as f32,
+        );
         let orientation = self.orientation();
         let target_speed_mps = if camera_has_movement_input(&self.keys) {
             camera_speed_mps(self.canonical_camera_m, &self.keys)
@@ -2268,3 +2275,5 @@ mod tests {
         assert!(keys.iter().all(|key| key.page.lod == 0));
     }
 }
+#[path = "../v3_demo_common.rs"]
+mod v3_demo_common;

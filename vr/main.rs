@@ -15,6 +15,7 @@
 //! Controls:
 //!   WASD / Space / Shift — fly (desktop mirror mode)
 //!   Mouse drag           — look around (click to grab cursor)
+//!   IJKL                 — keyboard look (desktop mirror mode)
 //!   Escape               — release cursor / exit
 //!   Left stick           — move (XR)
 //!   Right stick          — turn (XR)

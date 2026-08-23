@@ -6,6 +6,7 @@
 //   WASD        — move
 //   Space/Shift — up/down
 //   Mouse       — look (click to grab)
+//   IJKL        — keyboard look
 //   Escape      — release cursor / quit
 
 #[path = "../v3_demo_common.rs"]
@@ -482,6 +483,12 @@ impl ApplicationHandler for App {
                 state.mouse_delta = (0.0, 0.0);
                 state.yaw -= dx * LOOK_SENS;
                 state.pitch = (state.pitch - dy * LOOK_SENS).clamp(-1.5, 1.5);
+                v3_demo_common::apply_keyboard_look(
+                    &state.keys,
+                    &mut state.yaw,
+                    &mut state.pitch,
+                    dt,
+                );
 
                 let orientation = Quat::from_euler(EulerRot::YXZ, state.yaw, state.pitch, 0.0);
                 let forward = orientation * -Vec3::Z;

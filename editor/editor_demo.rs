@@ -14,6 +14,7 @@
 //! | **Right-click release**| Release cursor for object picking           |
 //! | WASD                   | Fly forward / left / back / right (RMB)     |
 //! | Space / L-Shift        | Fly up / down (hold RMB)                    |
+//! | I / J / K / L          | Keyboard look (hold RMB)                    |
 //! | **Left-click**         | Pick object under cursor (cursor free)      |
 //! | G                      | Switch to **Translate** gizmo               |
 //! | R                      | Switch to **Rotate** gizmo                  |
@@ -1157,6 +1158,12 @@ impl AppState {
             self.cam_pitch = self.cam_pitch.clamp(
                 -std::f32::consts::FRAC_PI_2 * 0.99,
                 std::f32::consts::FRAC_PI_2 * 0.99,
+            );
+            v3_demo_common::apply_keyboard_look(
+                &self.keys,
+                &mut self.cam_yaw,
+                &mut self.cam_pitch,
+                dt,
             );
 
             let (sy, cy) = self.cam_yaw.sin_cos();

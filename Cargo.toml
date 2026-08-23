@@ -3,6 +3,11 @@ name = "examples"
 version = "0.1.0"
 edition = "2021"
 workspace = "../Helio"
+default-run = "helio_examples"
+
+[[bin]]
+name = "helio_examples"
+path = "helio_examples.rs"
 
 [[bin]]
 name = "render_v2_basic"
@@ -304,6 +309,7 @@ wgpu = { workspace = true }
 pollster = { workspace = true }
 microfont = "3.7.8"
 salva3d = { version = "0.9", features = ["dim3", "parry", "rapier"] }
+eframe = { version = "0.35", default-features = true }
 
 [[bin]]
 name = "sprite_demo"

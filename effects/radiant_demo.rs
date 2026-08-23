@@ -4,6 +4,9 @@
 //   Tier 2 — Hand-authored surface templates (clear coat, SSS, anisotropic, skin)
 //   Tier 3 — Full custom template (iridescent thin-film surface)
 
+#[path = "../v3_demo_common.rs"]
+mod v3_demo_common;
+
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
@@ -896,6 +899,7 @@ impl AppState {
         self.mouse_delta = (0.0, 0.0);
         self.yaw -= dx * LOOK_SENS;
         self.pitch = (self.pitch - dy * LOOK_SENS).clamp(-1.5, 1.5);
+        v3_demo_common::apply_keyboard_look(&self.keys, &mut self.yaw, &mut self.pitch, dt);
         let orientation = Quat::from_euler(EulerRot::YXZ, self.yaw, self.pitch, 0.0);
         let forward = orientation * -Vec3::Z;
         let right = orientation * Vec3::X;

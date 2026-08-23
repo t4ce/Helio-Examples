@@ -54,6 +54,7 @@ struct AppState {
     mouse_delta: (f32, f32),
 
     segments: Vec<PendulumSegment>,
+    static_body_handles: Vec<RigidBodyHandle>,
     sphere_mat: MaterialId,
     physics_enabled: bool,
 
@@ -188,7 +189,9 @@ impl ApplicationHandler for App {
             debug_camera_buf,
             cull_stats_buf,
         );
-        renderer.set_ambient([0.05, 0.05, 0.07], 1.0);
+        // Gentle fill keeps the underside of the elevated pendulums readable
+        // without flattening the point-light shadows.
+        renderer.set_ambient([0.12, 0.14, 0.18], 1.0);
 
         let floor_mat = renderer.scene_mut().insert_material(make_material(
             [0.25, 0.25, 0.3, 1.0],
@@ -255,6 +258,7 @@ impl ApplicationHandler for App {
             cursor_grabbed: false,
             mouse_delta: (0.0, 0.0),
             segments: Vec::new(),
+            static_body_handles: Vec::new(),
             sphere_mat,
             physics_enabled: true,
             physics_integration: IntegrationParameters::default(),
@@ -437,15 +441,82 @@ impl AppState {
                 true,
             );
         }
+        for body_handle in self.static_body_handles.drain(..) {
+            self.physics_bodies.remove(
+                body_handle,
+                &mut self.physics_forces,
+                &mut self.physics_colliders,
+                &mut self.physics_impulse_joints,
+                &mut self.physics_multibody_joint_set,
+                true,
+            );
+        }
     }
 
     fn reset_chain(&mut self, sphere_mat: MaterialId) {
         self.clear_chain();
 
+        // The original demo was a 13-unit chain at Y=18. Keep that span as
+        // the ring radius, while making the featured pendulum twice as long
+        // and high enough to read as the centrepiece.
+        const HERO_SEGMENTS: usize = 26;
+        const HERO_SEGMENT_LENGTH: f32 = 1.0;
+        const HERO_PIVOT_HEIGHT: f32 = 28.0;
+        const RING_RADIUS: f32 = 13.0;
+        const RING_PENDULUMS: usize = 10;
+        const RING_SEGMENTS: usize = 6;
+        const RING_SEGMENT_LENGTH: f32 = 0.85;
+        const RING_PIVOT_HEIGHT: f32 = 15.0;
+
+        self.spawn_pendulum(
+            glam::Vec3::new(0.0, HERO_PIVOT_HEIGHT, 0.0),
+            glam::Vec3::X,
+            HERO_SEGMENTS,
+            HERO_SEGMENT_LENGTH,
+            sphere_mat,
+        );
+
+        for index in 0..RING_PENDULUMS {
+            let angle = index as f32 * std::f32::consts::TAU / RING_PENDULUMS as f32;
+            let radial = glam::Vec3::new(angle.cos(), 0.0, angle.sin());
+            // Tangential chains orbit the hero at a stable visual distance,
+            // rather than all pointing into the centre and colliding there.
+            let tangent = glam::Vec3::new(-radial.z, 0.0, radial.x);
+            self.spawn_pendulum(
+                radial * RING_RADIUS + glam::Vec3::Y * RING_PIVOT_HEIGHT,
+                tangent,
+                RING_SEGMENTS,
+                RING_SEGMENT_LENGTH,
+                sphere_mat,
+            );
+        }
+
+        let ground_body = RigidBodyBuilder::fixed()
+            .translation([0.0, -0.2, 0.0].into())
+            .build();
+        let ground_handle = self.physics_bodies.insert(ground_body);
+        self.static_body_handles.push(ground_handle);
+        let ground_collider = ColliderBuilder::cuboid(25.0, 0.5, 25.0).build();
+        self.physics_colliders.insert_with_parent(
+            ground_collider,
+            ground_handle,
+            &mut self.physics_bodies,
+        );
+    }
+
+    fn spawn_pendulum(
+        &mut self,
+        pivot: glam::Vec3,
+        direction: glam::Vec3,
+        chain_length: usize,
+        segment_length: f32,
+        sphere_mat: MaterialId,
+    ) {
         let pivot_body = RigidBodyBuilder::fixed()
-            .translation([0.0, 18.0, 0.0].into())
+            .translation(Vector::new(pivot.x, pivot.y, pivot.z))
             .build();
         let pivot_handle = self.physics_bodies.insert(pivot_body);
+        self.static_body_handles.push(pivot_handle);
         let pivot_collider = ColliderBuilder::ball(0.25).build();
         self.physics_colliders.insert_with_parent(
             pivot_collider,
@@ -453,16 +524,10 @@ impl AppState {
             &mut self.physics_bodies,
         );
 
-        let chain_length = 13;
-        let seg_length = 1.0;
-
         let mut parent_handle = pivot_handle;
-        let mut last_body_handle = pivot_handle;
 
         for i in 0..chain_length {
-            // Start horizontal at height 18.0 and extend along +X, so gravity will swing the chain.
-            let x = (i as f32 + 1.0) * seg_length;
-            let y = 18.0;
+            let position = pivot + direction * ((i as f32 + 1.0) * segment_length);
             let sphere_mesh_id = self
                 .renderer
                 .scene_mut()
@@ -476,7 +541,7 @@ impl AppState {
                 &mut self.renderer,
                 sphere_mesh_id,
                 sphere_mat,
-                glam::Mat4::from_translation(glam::Vec3::new(x, y, 0.0))
+                glam::Mat4::from_translation(position)
                     * glam::Mat4::from_scale(glam::Vec3::splat(0.8)),
                 0.9,
                 Some(helio::Movability::Movable),
@@ -484,7 +549,7 @@ impl AppState {
             .expect("insert sphere");
 
             let body = RigidBodyBuilder::dynamic()
-                .translation([x, y, 0.0].into())
+                .translation(Vector::new(position.x, position.y, position.z))
                 .build();
             let body_handle = self.physics_bodies.insert(body);
             let collider = ColliderBuilder::ball(0.4)
@@ -498,9 +563,10 @@ impl AppState {
             );
 
             let mut joint = SphericalJoint::new();
-            // Connect each segment along X axis (horizontal chain) using mid-point anchors.
-            joint.set_local_anchor1(Point::new(seg_length * 0.5, 0.0, 0.0));
-            joint.set_local_anchor2(Point::new(-seg_length * 0.5, 0.0, 0.0));
+            // Connect along the requested horizontal direction with midpoint anchors.
+            let local_anchor = direction * (segment_length * 0.5);
+            joint.set_local_anchor1(Point::new(local_anchor.x, local_anchor.y, local_anchor.z));
+            joint.set_local_anchor2(Point::new(-local_anchor.x, -local_anchor.y, -local_anchor.z));
             self.physics_impulse_joints
                 .insert(parent_handle, body_handle, joint, true);
 
@@ -510,19 +576,7 @@ impl AppState {
                 collider_handle,
             });
             parent_handle = body_handle;
-            last_body_handle = body_handle;
         }
-
-        let ground_body = RigidBodyBuilder::fixed()
-            .translation([0.0, -0.2, 0.0].into())
-            .build();
-        let ground_handle = self.physics_bodies.insert(ground_body);
-        let ground_collider = ColliderBuilder::cuboid(25.0, 0.5, 25.0).build();
-        self.physics_colliders.insert_with_parent(
-            ground_collider,
-            ground_handle,
-            &mut self.physics_bodies,
-        );
     }
 
     fn step_physics(&mut self, dt: f32) {

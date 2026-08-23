@@ -1,15 +1,13 @@
 //! Corona — GPU particle system demo.
 //!
-//! Showcases 4 distinct emitter configurations at scale (1M total particles):
-//!   1. Fountain  (Point, upward velocity, gravity, blue→cyan fade)
-//!   2. Nebula    (Sphere, slow orbit, purple→pink)
-//!   3. FireRing  (Sphere, radial outward, orange→red)
-//!   4. Galaxy    (Sphere, spinning disk, white→blue)
+//! Showcases five distinct emitter configurations in a readable layout:
+//! one central fountain and one effect in each corner of the arena.
 //!
 //! Controls:
 //!   WASD        — fly
 //!   Space/Shift — up/down
 //!   Mouse       — look (click to grab)
+//!   IJKL        — keyboard look
 //!   Escape      — release / quit
 
 #[path = "../v3_demo_common.rs"]
@@ -36,7 +34,6 @@ use winit::{
 
 const LOOK_SENS: f32 = 0.002;
 const FLY_SPEED: f32 = 5.0;
-const DRAG: f32 = 8.0;
 
 // ── app ───────────────────────────────────────────────────────────────────────
 
@@ -57,13 +54,12 @@ struct AppState {
     cam_pos: Vec3,
     yaw: f32,
     pitch: f32,
-    velocity: Vec3,
     // input
     keys: HashSet<KeyCode>,
     cursor_grabbed: bool,
     mouse_delta: (f32, f32),
     // emitter descriptors (CPU-side, rebuilt each frame with position/rotation)
-    emitters: [libhelio::GpuCoronaEmitter; 4],
+    emitters: [libhelio::GpuCoronaEmitter; 5],
 }
 
 impl App {
@@ -71,7 +67,7 @@ impl App {
         Self { state: None }
     }
 
-    fn build_emitters(elapsed: f32) -> [libhelio::GpuCoronaEmitter; 4] {
+    fn build_emitters(elapsed: f32) -> [libhelio::GpuCoronaEmitter; 5] {
         let t = elapsed;
 
         // ── 1. Fountain: blue fountain bursting from origin ────────────────
@@ -92,11 +88,11 @@ impl App {
             position: [0.0, 0.0, 0.0],
         };
 
-        // ── 2. Nebula: slow purple cloud orbiting origin ───────────────────
+        // ── 2. Nebula: back-left purple cloud ──────────────────────────────
         let nebula_pos = [
-            6.0 * t.cos() * 0.5,
+            -12.0,
             2.0 + 1.5 * (t * 0.7).sin(),
-            6.0 * t.sin() * 0.5,
+            -12.0,
         ];
         let nebula = libhelio::CoronaEmitterDescriptor {
             max_particles: 131_072,
@@ -115,9 +111,9 @@ impl App {
             position: nebula_pos,
         };
 
-        // ── 3. FireRing: radial burst in XZ plane ──────────────────────────
+        // ── 3. FireRing: back-right radial burst ───────────────────────────
         let ring_angle = t * 0.6;
-        let ring_pos = [4.0 * ring_angle.cos(), 0.5, 4.0 * ring_angle.sin()];
+        let ring_pos = [12.0, 0.5, -12.0];
         let fire = libhelio::CoronaEmitterDescriptor {
             max_particles: 65_536,
             emit_rate: 2000.0,
@@ -135,7 +131,7 @@ impl App {
             position: ring_pos,
         };
 
-        // ── 4. Galaxy: spinning disk of white-blue particles ───────────────
+        // ── 4. Galaxy: front-right white-blue disk ─────────────────────────
         let galaxy = libhelio::CoronaEmitterDescriptor {
             max_particles: 131_072,
             emit_rate: 4000.0,
@@ -150,7 +146,25 @@ impl App {
             gravity: 0.0,
             shape: libhelio::CoronaEmitterShape::Sphere { radius: 6.0 },
             texture_index: -1,
-            position: [0.0, 8.0, 0.0],
+            position: [12.0, 8.0, 12.0],
+        };
+
+        // ── 5. Aurora: front-left vertical teal plume ──────────────────────
+        let aurora = libhelio::CoronaEmitterDescriptor {
+            max_particles: 65_536,
+            emit_rate: 2_500.0,
+            lifetime: 4.0,
+            lifetime_variation: 1.0,
+            start_size: [0.7, 0.7],
+            end_size: [1.8, 1.8],
+            start_color: [0.1, 1.0, 0.75, 0.75],
+            end_color: [0.0, 0.25, 0.7, 0.0],
+            velocity: [0.0, 3.0, 0.0],
+            velocity_variation: [1.0, 1.5, 1.0],
+            gravity: -0.4,
+            shape: libhelio::CoronaEmitterShape::Sphere { radius: 1.2 },
+            texture_index: -1,
+            position: [-12.0, 1.0, 12.0],
         };
 
         [
@@ -158,6 +172,7 @@ impl App {
             nebula.to_gpu(),
             fire.to_gpu(),
             galaxy.to_gpu(),
+            aurora.to_gpu(),
         ]
     }
 }
@@ -335,7 +350,6 @@ impl ApplicationHandler for App {
             cam_pos: Vec3::new(0.0, 4.0, 12.0),
             yaw: 0.0,
             pitch: -0.3,
-            velocity: Vec3::ZERO,
             keys: HashSet::new(),
             cursor_grabbed: false,
             mouse_delta: (0.0, 0.0),
@@ -427,8 +441,14 @@ impl ApplicationHandler for App {
                 // Update fly camera
                 let (dx, dy) = state.mouse_delta;
                 state.mouse_delta = (0.0, 0.0);
-                state.yaw -= dx * LOOK_SENS;
+                state.yaw += dx * LOOK_SENS;
                 state.pitch = (state.pitch - dy * LOOK_SENS).clamp(-1.5, 1.5);
+                v3_demo_common::apply_keyboard_look(
+                    &state.keys,
+                    &mut state.yaw,
+                    &mut state.pitch,
+                    dt,
+                );
                 let orientation = Quat::from_euler(EulerRot::YXZ, state.yaw, state.pitch, 0.0);
                 let forward = orientation * -Vec3::Z;
                 let right = orientation * Vec3::X;
@@ -455,9 +475,10 @@ impl ApplicationHandler for App {
                 if accel.length_squared() > 0.0 {
                     accel = accel.normalize();
                 }
-                state.velocity += accel * FLY_SPEED * dt;
-                state.velocity /= 1.0 + DRAG * dt;
-                state.cam_pos += state.velocity * dt;
+                // Keep the Corona scene on the standard desktop flycam:
+                // moving stops immediately when input stops, rather than
+                // retaining the old particle-demo camera inertia.
+                state.cam_pos += accel * FLY_SPEED * dt;
 
                 let size = state.window.inner_size();
                 let camera = Camera::perspective_look_at(
@@ -519,7 +540,7 @@ fn main() {
         .filter_level(log::LevelFilter::Info)
         .init();
     log::info!("=== Corona GPU Particle System Demo ===");
-    log::info!("590,824 total particles across 4 emitters");
+    log::info!("655,360 total particles across 5 emitters");
     log::info!("Fly around to see the full effect!");
     let event_loop = EventLoop::new().expect("event loop");
     let mut app = App::new();
