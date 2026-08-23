@@ -515,10 +515,9 @@ fn bay_instancing(renderer: &mut Renderer, z: f32, mats: &Mats) {
 /// asset cannot be loaded, so a missing model never crashes the demo.
 fn load_container(renderer: &mut Renderer) -> Option<(MeshId, MaterialId, Vec3, Vec3)> {
     const CONTAINER_FBX: &[u8] =
-        include_bytes!("../../../models/source/container with textures.fbx");
+        include_bytes!("../assets/models/source/container with textures.fbx");
     let base_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .join("models/source");
+        .join("assets/models/source");
 
     let scene = match load_scene_bytes_with_config(
         CONTAINER_FBX,

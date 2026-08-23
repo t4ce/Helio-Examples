@@ -88,7 +88,7 @@ const RING_SIZE: u32 = 256;
 fn grafiti_texture() -> (Vec<u8>, u32, u32) {
     let img = image::load_from_memory(include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../grafiti.png"
+        "/assets/grafiti.png"
     )))
     .expect("decode grafiti.png")
     .to_rgba8();

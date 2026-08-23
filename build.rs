@@ -16,7 +16,7 @@ use std::path::Path;
 
 fn main() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let sprites_dir = Path::new(&manifest_dir).join("../../assets/sprites");
+    let sprites_dir = Path::new(&manifest_dir).join("assets/sprites");
     println!("cargo:rerun-if-changed={}", sprites_dir.display());
 
     let mut entries: Vec<(String, String)> = Vec::new();

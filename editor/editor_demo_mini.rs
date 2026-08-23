@@ -49,7 +49,7 @@ use winit::{
 use std::collections::HashSet;
 use std::sync::Arc;
 
-const CRATES_FBX: &[u8] = include_bytes!("../../models/source/container with textures.fbx");
+const CRATES_FBX: &[u8] = include_bytes!("../assets/models/source/container with textures.fbx");
 
 fn main() {
     env_logger::init();
@@ -577,8 +577,7 @@ impl ApplicationHandler for App {
         // create one VG mesh per section so each keeps its own material.
         {
             let crates_base = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../..")
-                .join("models/source");
+                .join("assets/models/source");
 
             match load_scene_bytes_with_config(
                 CRATES_FBX,
