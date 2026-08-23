@@ -20,6 +20,7 @@ use helio::{
 use helio_artifact::{Artifact, Builder, DynamicSlot, Manifest, SectionKind};
 use helio_default_graphs::build_simple_graph;
 
+#[path = "../churn_scene.rs"]
 mod churn_scene;
 
 const WIDTH: u32 = 320;
