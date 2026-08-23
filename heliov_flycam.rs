@@ -2600,10 +2600,7 @@ impl ApplicationHandler for App {
                 Vec3::new(0.0, 30.0, 45.0),
                 0.0,
                 -0.5,
-                FlyCameraConfig {
-                    max_delta_seconds: 0.05,
-                    ..FlyCameraConfig::default()
-                },
+                FlyCameraConfig::default(),
             ),
             input: WinitFlyInput::new(),
             world_axes_visible: true,

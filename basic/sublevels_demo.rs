@@ -13,6 +13,7 @@
 //!   WASD        — move forward/left/back/right
 //!   Space/Shift — move up/down
 //!   Mouse drag  — look around (click to grab cursor)
+//!   IJKL        — look with the keyboard
 //!   Escape      — release cursor / exit
 
 #[path = "../v3_demo_common.rs"]
@@ -414,10 +415,27 @@ impl AppState {
     fn render(&mut self, dt: f32) {
         const SPEED: f32 = 4.0;
         const SENS: f32 = 0.002;
+        const KEYBOARD_LOOK_SPEED: f32 = 1.8;
 
         self.cam_yaw += self.mouse_delta.0 * SENS;
         self.cam_pitch = (self.cam_pitch - self.mouse_delta.1 * SENS).clamp(-1.4, 1.4);
         self.mouse_delta = (0.0, 0.0);
+
+        // Match the standard Helio desktop flycam: I/K pitch and J/L yaw
+        // remain available when the mouse is not captured or for slow, exact
+        // framing.
+        if self.keys.contains(&KeyCode::KeyJ) {
+            self.cam_yaw -= KEYBOARD_LOOK_SPEED * dt;
+        }
+        if self.keys.contains(&KeyCode::KeyL) {
+            self.cam_yaw += KEYBOARD_LOOK_SPEED * dt;
+        }
+        if self.keys.contains(&KeyCode::KeyI) {
+            self.cam_pitch = (self.cam_pitch + KEYBOARD_LOOK_SPEED * dt).clamp(-1.4, 1.4);
+        }
+        if self.keys.contains(&KeyCode::KeyK) {
+            self.cam_pitch = (self.cam_pitch - KEYBOARD_LOOK_SPEED * dt).clamp(-1.4, 1.4);
+        }
 
         let (sy, cy) = self.cam_yaw.sin_cos();
         let (sp, cp) = self.cam_pitch.sin_cos();
