@@ -179,7 +179,7 @@ impl ApplicationHandler for App {
 
         // ── Register iridescent template (Tier 3) ───────────────────────────
 
-        let iridescent_wgsl = include_str!("shaders/radiant_iridescent.wgsl");
+        let iridescent_wgsl = include_str!("../shaders/radiant_iridescent.wgsl");
         let iridescent_class = renderer
             .template_registry_mut()
             .register_str("iridescent", iridescent_wgsl.to_string());
