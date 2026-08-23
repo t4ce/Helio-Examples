@@ -19,6 +19,7 @@
 //!   WASD / Space / Shift — fly camera
 //!   Escape — release cursor / exit
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 use v3_demo_common::{
     box_mesh, insert_object, insert_object_with_movability, make_material, point_light, sphere_mesh,

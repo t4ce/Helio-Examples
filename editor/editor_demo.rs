@@ -24,6 +24,7 @@
 //! | **F11** / **Alt+Enter**| Toggle fullscreen                           |
 //! | Escape                 | Deselect → exit                             |
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 use helio::{

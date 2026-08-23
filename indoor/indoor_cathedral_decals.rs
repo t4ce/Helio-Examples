@@ -4,6 +4,7 @@
 //! onto the geometry: floor wear marks, a wall crack, blood splatters,
 //! bullet holes, soot, and a glowing rune on the altar.
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 use helio::{

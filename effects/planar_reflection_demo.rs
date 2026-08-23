@@ -8,6 +8,7 @@
 //   Mouse       — look (click to grab)
 //   Escape      — release cursor / quit
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 use std::collections::HashSet;

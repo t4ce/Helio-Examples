@@ -15,6 +15,7 @@
 //!   Escape      — release cursor / exit
 //!   F3          — toggle virtual geometry triangle debug view
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 use std::collections::HashSet;

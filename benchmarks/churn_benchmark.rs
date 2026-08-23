@@ -9,6 +9,7 @@
 //!   Escape               — release cursor / exit
 
 mod churn_scene;
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 use v3_demo_common::{
     box_mesh, insert_object, insert_object_with_movability, make_material, plane_mesh, point_light,

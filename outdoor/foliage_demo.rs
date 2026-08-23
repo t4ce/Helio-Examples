@@ -21,6 +21,7 @@
 //!   Left stick  — move (XR)
 //!   Right stick — turn (XR)
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 use helio::{

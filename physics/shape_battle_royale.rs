@@ -9,6 +9,7 @@
 //!   +/-                  — adjust shape count and restart round (auto-reset 2s after end)
 //!   Escape               — release cursor / exit
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 use v3_demo_common::{
     box_mesh, cube_mesh, insert_object, insert_object_with_movability, make_material, plane_mesh,

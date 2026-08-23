@@ -32,6 +32,7 @@
 //! `portal_rooms` target remains the original, single-level scene.
 
 #[path = "v3_demo_common.rs"]
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 use helio::{

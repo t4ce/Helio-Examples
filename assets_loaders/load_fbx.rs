@@ -1,5 +1,6 @@
 //! Load and display a 3D model file using the new `helio` wrapper.
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 use std::collections::HashSet;

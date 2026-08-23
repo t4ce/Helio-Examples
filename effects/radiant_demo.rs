@@ -28,6 +28,7 @@ use winit::{
     window::{CursorGrabMode, Window, WindowId},
 };
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 const LOOK_SENS: f32 = 0.002;

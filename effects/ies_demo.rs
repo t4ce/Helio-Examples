@@ -13,6 +13,7 @@
 //!   G           — toggle gobo on all lights
 //!   Escape      — release / exit
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 use helio::{

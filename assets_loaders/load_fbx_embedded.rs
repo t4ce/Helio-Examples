@@ -1,5 +1,6 @@
 //! Embedded FBX showcase using the `helio` wrapper.
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 use std::collections::HashSet;

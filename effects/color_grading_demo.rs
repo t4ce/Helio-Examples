@@ -10,6 +10,7 @@
 //!   T/G         — cycle LUT size (16/32/64)
 //!   Escape      — release / exit
 
+#[path = "../v3_demo_common.rs"]
 mod v3_demo_common;
 
 use helio::{
