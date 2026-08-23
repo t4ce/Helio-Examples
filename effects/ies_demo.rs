@@ -532,6 +532,7 @@ impl ApplicationHandler for App {
                 state.cam_pitch =
                     (state.cam_pitch - state.mouse_delta.1 * 0.005).clamp(-1.55, 1.55);
                 state.mouse_delta = (0.0, 0.0);
+                v3_demo_common::apply_keyboard_look(&state.keys, &mut state.cam_yaw, &mut state.cam_pitch, dt);
                 let aspect = state.window.inner_size().width as f32
                     / state.window.inner_size().height.max(1) as f32;
 

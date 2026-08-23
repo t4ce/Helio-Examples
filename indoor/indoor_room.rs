@@ -463,6 +463,7 @@ impl AppState {
         self.cam_yaw += self.mouse_delta.0 * SENS;
         self.cam_pitch = (self.cam_pitch - self.mouse_delta.1 * SENS).clamp(-1.4, 1.4);
         self.mouse_delta = (0.0, 0.0);
+        v3_demo_common::apply_keyboard_look(&self.keys, &mut self.cam_yaw, &mut self.cam_pitch, dt);
 
         let (sy, cy) = self.cam_yaw.sin_cos();
         let (sp, cp) = self.cam_pitch.sin_cos();

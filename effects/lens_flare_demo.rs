@@ -479,6 +479,7 @@ impl AppState {
     fn update(&mut self, dt: f32) {
         let (dx, dy) = self.mouse_delta;
         self.mouse_delta = (0.0, 0.0);
+        v3_demo_common::apply_keyboard_look(&self.keys, &mut self.cam_yaw, &mut self.cam_pitch, dt);
         self.cam_yaw -= dx * LOOK_SENS;
         self.cam_pitch = (self.cam_pitch - dy * LOOK_SENS).clamp(-1.5, 1.5);
 
