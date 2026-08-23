@@ -1,0 +1,21 @@
+{
+    "format_version": 2,
+  "header": {
+    "description": "www.patreon.com/wabbabrick",
+    "name": "BRIXEL x64 RTX/PBR",
+    "uuid": "b8e0eabd-c65a-4ecd-b330-f31bf43f9fff",
+    "version": [ 1, 0, 0 ],
+    "min_engine_version": [ 1, 16, 2 ]
+  },
+    "modules": [
+      {
+        "description": "www.patreon.com/wabbabrick",
+        "type": "resources",
+        "uuid": "d5344a2b-22d9-4aa5-8e5a-6f7b558d85a8",
+        "version": [ 1, 0, 0 ]
+      }
+  ],
+    "capabilities" : [
+            "raytraced"
+    ]
+}

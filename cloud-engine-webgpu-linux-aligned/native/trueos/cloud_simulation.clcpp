@@ -1,0 +1,444 @@
+// TRUEOS-aligned C++ for OpenCL cloud simulation.
+// Browser WGSL remains the visual authoring/reference implementation.
+// This target keeps one required SIMD16 subgroup and a flattened persistent
+// half4 volume so it maps directly onto TRUEOS's Shell2 C++ direct-RCS shape.
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+
+typedef struct {
+  float4 time_step;
+  float4 wind_turbulence;
+  float4 brush_center_radius;
+  float4 brush_controls;
+  float4 flow_controls;
+  float4 volume_seed;
+  float4 art_controls;
+} SimParams;
+
+inline float fract1(const float value) {
+  return value - floor(value);
+}
+
+inline float3 fract3(const float3 value) {
+  return value - floor(value);
+}
+
+inline float hash31(const float3 p) {
+  float3 q = fract3(p * (float3)(0.1031f, 0.1030f, 0.0973f));
+  const float h = dot(q, q.yzx + (float3)(33.33f));
+  q += (float3)(h);
+  return fract1((q.x + q.y) * q.z);
+}
+
+inline float noise3(const float3 p) {
+  const float3 cell = floor(p);
+  const float3 local_position = fract3(p);
+  const float3 blend = local_position * local_position * ((float3)(3.0f) - 2.0f * local_position);
+
+  const float n000 = hash31(cell + (float3)(0.0f, 0.0f, 0.0f));
+  const float n100 = hash31(cell + (float3)(1.0f, 0.0f, 0.0f));
+  const float n010 = hash31(cell + (float3)(0.0f, 1.0f, 0.0f));
+  const float n110 = hash31(cell + (float3)(1.0f, 1.0f, 0.0f));
+  const float n001 = hash31(cell + (float3)(0.0f, 0.0f, 1.0f));
+  const float n101 = hash31(cell + (float3)(1.0f, 0.0f, 1.0f));
+  const float n011 = hash31(cell + (float3)(0.0f, 1.0f, 1.0f));
+  const float n111 = hash31(cell + (float3)(1.0f, 1.0f, 1.0f));
+
+  const float nx00 = mix(n000, n100, blend.x);
+  const float nx10 = mix(n010, n110, blend.x);
+  const float nx01 = mix(n001, n101, blend.x);
+  const float nx11 = mix(n011, n111, blend.x);
+  const float nxy0 = mix(nx00, nx10, blend.y);
+  const float nxy1 = mix(nx01, nx11, blend.y);
+  return mix(nxy0, nxy1, blend.z);
+}
+
+inline float fbm3(float3 position) {
+  float3 p = position;
+  float amplitude = 0.54f;
+  float sum = 0.0f;
+  float normalization = 0.0f;
+
+  for (int octave = 0; octave < 3; ++octave) {
+    sum += noise3(p) * amplitude;
+    normalization += amplitude;
+    p = p * 2.03f + (float3)(11.7f, 7.1f, 5.4f);
+    amplitude *= 0.5f;
+  }
+
+  return sum / normalization;
+}
+
+inline float vertical_band(
+    const float y,
+    const float lower,
+    const float lower_soft,
+    const float upper_soft,
+    const float upper) {
+  return smoothstep(lower, lower_soft, y)
+      * (1.0f - smoothstep(upper_soft, upper, y));
+}
+
+inline float ellipsoid_blob(
+    const float3 p,
+    const float3 center,
+    const float3 scale) {
+  const float distance_value = length((p - center) * scale);
+  return 1.0f - smoothstep(0.19f, 0.52f, distance_value);
+}
+
+inline float spiral_scroll(
+    const float3 p,
+    const float3 center,
+    const float3 scale,
+    const float turns,
+    const float phase) {
+  const float3 q = (p - center) * scale;
+  const float radius = length(q.xy);
+  const float angle = atan2(q.y, q.x);
+  const float crest = cos(angle + radius * turns + phase) * 0.5f + 0.5f;
+  const float tube = smoothstep(0.76f, 0.985f, crest);
+  const float radial_window = smoothstep(0.025f, 0.10f, radius)
+      * (1.0f - smoothstep(0.38f, 0.64f, radius));
+  const float depth_window = exp(-fabs(q.z) * 2.35f);
+  return tube * radial_window * depth_window;
+}
+
+inline float cloud_pattern(
+    const float3 p,
+    const int pattern,
+    const float amount,
+    const float time,
+    const float seed,
+    const SimParams params) {
+  if (amount <= 0.002f) {
+    return 0.0f;
+  }
+
+  const float3 seed_offset = (float3)(seed * 0.017f, seed * 0.031f, seed * 0.047f);
+  const float3 source_drift = (float3)(time * 0.008f, 0.0f, -time * 0.004f);
+  const float coverage_gate = smoothstep(0.0f, 0.12f, amount);
+
+  if (pattern == 0) {
+    const float macro_shape = fbm3(p * (float3)(2.0f, 2.45f, 1.75f) + seed_offset + source_drift);
+    const float billow = fbm3(p * (float3)(5.3f, 4.2f, 4.7f) + seed_offset * 1.7f - source_drift * 0.4f);
+    const float combined = macro_shape * 0.68f + billow * 0.42f - p.y * 0.08f;
+    const float threshold = mix(0.79f, 0.43f, amount);
+    const float body = smoothstep(threshold, threshold + 0.16f, combined);
+    const float height = vertical_band(p.y, 0.07f, 0.19f, 0.72f, 0.93f);
+    const float flat_base = smoothstep(0.12f, 0.19f, p.y);
+    return clamp(body * height * flat_base * coverage_gate, 0.0f, 1.0f);
+  }
+
+  if (pattern == 1) {
+    const float macro_shape = fbm3(p * (float3)(1.35f, 5.8f, 1.25f) + seed_offset + source_drift * 0.55f);
+    const float holes = fbm3(p * (float3)(3.1f, 2.2f, 3.0f) + seed_offset * 2.2f);
+    const float combined = macro_shape * 0.72f + holes * 0.32f;
+    const float threshold = mix(0.76f, 0.37f, amount);
+    const float body = smoothstep(threshold, threshold + 0.15f, combined);
+    const float height = vertical_band(p.y, 0.18f, 0.30f, 0.57f, 0.72f);
+    return clamp(body * height * 0.9f * coverage_gate, 0.0f, 1.0f);
+  }
+
+  if (pattern == 2) {
+    const float warp = fbm3(p * (float3)(1.8f, 2.6f, 1.2f) + seed_offset + source_drift * 1.6f);
+    const float3 streak_position = (float3)(
+        p.x * 7.0f + warp * 2.3f,
+        p.y * 11.0f,
+        p.z * 2.1f - p.x * 1.7f);
+    const float streak_noise = fbm3(streak_position + seed_offset * 1.4f);
+    const float ridges = 1.0f - fabs(streak_noise * 2.0f - 1.0f);
+    const float threshold = mix(0.91f, 0.62f, amount);
+    const float strands = smoothstep(threshold, fmin(1.0f, threshold + 0.12f), ridges);
+    const float height = vertical_band(p.y, 0.55f, 0.66f, 0.88f, 0.98f);
+    return clamp(strands * height * 0.54f * coverage_gate, 0.0f, 1.0f);
+  }
+
+  if (pattern == 3) {
+    const float tower_macro = fbm3(p * (float3)(2.3f, 1.35f, 2.15f) + seed_offset + source_drift * 0.45f);
+    const float vertical_detail = fbm3(p * (float3)(4.4f, 3.0f, 4.1f) + seed_offset * 1.9f);
+    const float base_noise = fbm3(p * (float3)(1.4f, 7.0f, 1.35f) + seed_offset * 0.7f);
+    const float lift = (1.0f - p.y) * 0.18f + smoothstep(0.22f, 0.64f, p.y) * 0.06f;
+    const float combined = tower_macro * 0.65f + vertical_detail * 0.39f + lift;
+    const float threshold = mix(0.77f, 0.38f, amount);
+    const float towers = smoothstep(threshold, threshold + 0.14f, combined);
+    const float base = smoothstep(mix(0.82f, 0.48f, amount), 0.92f, base_noise)
+        * vertical_band(p.y, 0.05f, 0.14f, 0.34f, 0.46f);
+    const float height = vertical_band(p.y, 0.03f, 0.11f, 0.88f, 0.99f);
+    return clamp(fmax(towers * height, base) * coverage_gate, 0.0f, 1.0f);
+  }
+
+  if (pattern == 4) {
+    const float macro_shape = fbm3(p * (float3)(2.65f, 2.3f, 2.45f) + seed_offset + source_drift * 0.9f);
+    const float cell = fbm3(p * (float3)(6.2f, 4.4f, 5.7f) + seed_offset * 1.6f);
+    const float combined = macro_shape * 0.74f + cell * 0.35f;
+    const float threshold = mix(0.88f, 0.55f, amount);
+    const float islands = smoothstep(threshold, threshold + 0.12f, combined);
+    const float height = vertical_band(p.y, 0.10f, 0.22f, 0.67f, 0.84f);
+    return clamp(islands * height * coverage_gate, 0.0f, 1.0f);
+  }
+
+  const float curl_control = clamp(params.art_controls.y, 0.0f, 2.5f);
+  const float ribbon_control = clamp(params.art_controls.z, 0.0f, 1.5f);
+  const float turns = mix(7.0f, 15.0f, curl_control / 2.5f);
+  const float drift_phase = time * 0.055f + seed * 0.031f;
+
+  if (pattern == 5) {
+    const float scroll_a = spiral_scroll(
+        p,
+        (float3)(0.24f, 0.47f, 0.43f),
+        (float3)(1.0f, 1.35f, 1.35f),
+        turns,
+        drift_phase);
+    const float scroll_b = spiral_scroll(
+        p,
+        (float3)(0.72f, 0.61f, 0.58f),
+        (float3)(1.08f, 1.48f, 1.3f),
+        -turns * 0.92f,
+        1.7f - drift_phase * 0.7f);
+    const float scroll_c = spiral_scroll(
+        p,
+        (float3)(0.55f, 0.28f, 0.50f),
+        (float3)(1.2f, 1.62f, 1.5f),
+        turns * 1.12f,
+        3.0f + drift_phase * 0.45f);
+
+    const float head_a = ellipsoid_blob(p, (float3)(0.13f, 0.55f, 0.42f), (float3)(2.2f, 3.0f, 3.0f));
+    const float head_b = ellipsoid_blob(p, (float3)(0.84f, 0.67f, 0.58f), (float3)(2.4f, 3.1f, 3.2f));
+    const float head_c = ellipsoid_blob(p, (float3)(0.50f, 0.20f, 0.50f), (float3)(3.2f, 4.5f, 3.4f));
+
+    const float ribbon_frequency = mix(5.5f, 12.5f, ribbon_control / 1.5f);
+    const float ribbon_y = 0.39f
+        + sin((p.x + seed * 0.003f) * ribbon_frequency + p.z * 1.8f)
+            * (0.045f + ribbon_control * 0.055f)
+        + sin(p.x * 21.0f - p.z * 2.4f) * 0.018f;
+    const float ribbon_width = mix(0.12f, 0.055f, ribbon_control / 1.5f);
+    const float ribbon = (1.0f - smoothstep(ribbon_width * 0.45f, ribbon_width, fabs(p.y - ribbon_y)))
+        * exp(-fabs(p.z - 0.49f) * 3.6f)
+        * smoothstep(0.02f, 0.16f, p.x)
+        * (1.0f - smoothstep(0.83f, 0.99f, p.x));
+
+    const float scrolls = fmax(scroll_a, fmax(scroll_b, scroll_c));
+    const float heads = fmax(head_a, fmax(head_b, head_c));
+    const float billow = fbm3(p * (float3)(5.0f, 4.2f, 4.7f) + seed_offset * 1.8f);
+    const float combined = fmax(heads, fmax(scrolls * (0.72f + billow * 0.42f), ribbon * 0.86f));
+    const float threshold = mix(0.78f, 0.23f, amount);
+    const float body = smoothstep(threshold, threshold + 0.19f, combined);
+    const float depth_and_height = vertical_band(p.y, 0.02f, 0.09f, 0.91f, 0.99f)
+        * vertical_band(p.z, 0.02f, 0.08f, 0.93f, 0.99f);
+    return clamp(body * depth_and_height * coverage_gate, 0.0f, 1.0f);
+  }
+
+  const float frequency = mix(5.0f, 13.0f, ribbon_control / 1.5f);
+  const float width = mix(0.105f, 0.045f, ribbon_control / 1.5f);
+  const float ribbon_a_y = 0.24f + sin(p.x * frequency + p.z * 2.2f + drift_phase) * 0.085f;
+  const float ribbon_b_y = 0.47f + sin(p.x * (frequency * 0.78f) - p.z * 2.8f + 1.8f) * 0.095f;
+  const float ribbon_c_y = 0.70f + sin(p.x * (frequency * 1.12f) + p.z * 1.7f + 3.4f) * 0.065f;
+  const float band_a = 1.0f - smoothstep(width * 0.35f, width, fabs(p.y - ribbon_a_y));
+  const float band_b = 1.0f - smoothstep(width * 0.35f, width, fabs(p.y - ribbon_b_y));
+  const float band_c = 1.0f - smoothstep(width * 0.35f, width, fabs(p.y - ribbon_c_y));
+  const float depth_gate = exp(-fabs(p.z - 0.50f) * mix(2.2f, 4.5f, ribbon_control / 1.5f));
+  const float eddy_a = spiral_scroll(
+      p,
+      (float3)(0.30f, 0.37f, 0.48f),
+      (float3)(1.3f, 1.7f, 1.5f),
+      turns * 1.1f,
+      drift_phase);
+  const float eddy_b = spiral_scroll(
+      p,
+      (float3)(0.74f, 0.58f, 0.54f),
+      (float3)(1.45f, 1.9f, 1.7f),
+      -turns,
+      2.0f - drift_phase);
+  const float bands = fmax(band_a, fmax(band_b, band_c)) * depth_gate;
+  const float fine = fbm3(p * (float3)(6.4f, 4.2f, 5.6f) + seed_offset + source_drift);
+  const float combined = fmax(bands * (0.68f + fine * 0.34f), fmax(eddy_a, eddy_b) * 0.88f);
+  const float threshold = mix(0.82f, 0.30f, amount);
+  const float body = smoothstep(threshold, threshold + 0.17f, combined);
+  const float height = vertical_band(p.y, 0.04f, 0.10f, 0.90f, 0.98f);
+  return clamp(body * height * coverage_gate, 0.0f, 1.0f);
+}
+
+inline float2 vortex_velocity(
+    const float2 p,
+    const float2 center,
+    const float direction) {
+  const float2 delta = p - center;
+  const float radius_squared = dot(delta, delta);
+  const float falloff = exp(-radius_squared * 17.0f);
+  return (float2)(-delta.y, delta.x) * direction * falloff;
+}
+
+inline float3 flow_velocity(
+    const float3 p,
+    const float time,
+    const SimParams params) {
+  const float3 wind = params.wind_turbulence.xyz;
+  const float turbulence = params.wind_turbulence.w;
+  const float rotation = params.flow_controls.z;
+  const float3 centered = p - (float3)(0.5f);
+
+  const float3 waves = (float3)(
+      sin(p.y * 9.0f + p.z * 6.0f + time * 0.37f),
+      sin(p.z * 7.0f + p.x * 5.0f - time * 0.29f),
+      sin(p.x * 8.0f + p.y * 10.0f + time * 0.23f));
+  const float3 gust = (float3)(
+      waves.x - waves.y,
+      (waves.z - waves.x) * 0.24f,
+      waves.y - waves.z) * (0.31f * turbulence);
+  const float3 swirl = (float3)(
+      -centered.z,
+      sin(time * 0.17f + p.x * 3.0f) * 0.12f,
+      centered.x) * (0.64f * rotation);
+  const float breathing_phase = sin(time * 0.13f + p.y * 4.0f + p.z * 1.7f);
+  const float3 breathing = centered * breathing_phase * (0.045f * turbulence);
+  const float3 convection = (float3)(
+      0.0f,
+      (1.0f - p.y) * (0.035f + turbulence * 0.035f),
+      0.0f);
+
+  const float artistic = params.art_controls.x;
+  const float curl_strength = params.art_controls.y;
+  const float ribbon_strength = params.art_controls.z;
+  const float2 vortices = vortex_velocity(p.xy, (float2)(0.25f, 0.48f), 1.0f)
+      + vortex_velocity(p.xy, (float2)(0.72f, 0.62f), -0.9f)
+      + vortex_velocity(p.xy, (float2)(0.53f, 0.27f), 0.75f);
+  const float3 art_curl = (float3)(
+      vortices.x,
+      vortices.y * 0.72f,
+      sin(p.x * 8.0f + time * 0.18f) * 0.045f) * (0.92f * curl_strength);
+  const float3 art_ribbon = (float3)(
+      sin(p.y * 8.0f + p.z * 3.0f + time * 0.31f),
+      cos(p.x * 10.0f - time * 0.23f) * 0.18f,
+      sin(p.x * 5.0f + p.y * 7.0f + time * 0.19f) * 0.34f) * (0.24f * ribbon_strength);
+
+  return wind + gust + swirl + breathing + convection + (art_curl + art_ribbon) * artistic;
+}
+
+inline uint volume_index(const uint x, const uint y, const uint z, const uint width, const uint height) {
+  return x + width * (y + height * z);
+}
+
+inline uint wrap_index(const int value, const uint extent) {
+  int wrapped = value % (int)extent;
+  if (wrapped < 0) wrapped += (int)extent;
+  return (uint)wrapped;
+}
+
+inline uint clamp_index(const int value, const uint extent) {
+  return (uint)clamp(value, 0, (int)extent - 1);
+}
+
+inline float4 sample_volume_linear(
+    __global const half4* volume,
+    const uint width,
+    const uint height,
+    const uint depth,
+    const float3 uv) {
+  const float3 p = (float3)(
+      fract1(uv.x) * (float)width - 0.5f,
+      clamp(uv.y, 0.0f, 1.0f) * (float)height - 0.5f,
+      fract1(uv.z) * (float)depth - 0.5f);
+  const float3 pf = floor(p);
+  const int3 p0 = convert_int3(pf);
+  const float3 f = p - pf;
+  const uint x0 = wrap_index(p0.x, width);
+  const uint x1 = wrap_index(p0.x + 1, width);
+  const uint y0 = clamp_index(p0.y, height);
+  const uint y1 = clamp_index(p0.y + 1, height);
+  const uint z0 = wrap_index(p0.z, depth);
+  const uint z1 = wrap_index(p0.z + 1, depth);
+  const float4 c000 = convert_float4(volume[volume_index(x0, y0, z0, width, height)]);
+  const float4 c100 = convert_float4(volume[volume_index(x1, y0, z0, width, height)]);
+  const float4 c010 = convert_float4(volume[volume_index(x0, y1, z0, width, height)]);
+  const float4 c110 = convert_float4(volume[volume_index(x1, y1, z0, width, height)]);
+  const float4 c001 = convert_float4(volume[volume_index(x0, y0, z1, width, height)]);
+  const float4 c101 = convert_float4(volume[volume_index(x1, y0, z1, width, height)]);
+  const float4 c011 = convert_float4(volume[volume_index(x0, y1, z1, width, height)]);
+  const float4 c111 = convert_float4(volume[volume_index(x1, y1, z1, width, height)]);
+  const float4 c00 = mix(c000, c100, f.x);
+  const float4 c10 = mix(c010, c110, f.x);
+  const float4 c01 = mix(c001, c101, f.x);
+  const float4 c11 = mix(c011, c111, f.x);
+  return mix(mix(c00, c10, f.y), mix(c01, c11, f.y), f.z);
+}
+
+__attribute__((intel_reqd_sub_group_size(16)))
+__attribute__((reqd_work_group_size(16, 1, 1)))
+__kernel void cloud_simulation(
+    __global const half4* previous_volume,
+    __global half4* next_volume,
+    const uint volume_width,
+    const uint volume_height,
+    const uint volume_depth,
+    const SimParams params) {
+  const uint linear = (uint)get_global_id(0);
+  const uint voxel_count = volume_width * volume_height * volume_depth;
+  if (linear >= voxel_count || volume_width == 0u || volume_height == 0u || volume_depth == 0u) {
+    return;
+  }
+  const uint plane = volume_width * volume_height;
+  const uint z = linear / plane;
+  const uint rem = linear - z * plane;
+  const uint y = rem / volume_width;
+  const uint x = rem - y * volume_width;
+  const float3 dimensions = convert_float3((uint3)(volume_width, volume_height, volume_depth));
+  const float3 uv = (convert_float3((uint3)(x, y, z)) + (float3)(0.5f)) / dimensions;
+
+  const float dt = fmax(params.time_step.x, 0.0f);
+  const float time = params.time_step.y;
+  const float amount = clamp(params.time_step.z, 0.0f, 1.0f);
+  const float automatic = params.time_step.w;
+  const int pattern = convert_int_rte(params.brush_controls.w);
+  const float seed = params.volume_seed.w;
+  const float3 world_size = (float3)(16.0f, 11.0f, 19.0f);
+
+  const float3 fine_position = uv * (float3)(13.0f, 9.0f, 12.0f)
+      + (float3)(time * 0.07f, -time * 0.035f, time * 0.045f)
+      + (float3)(seed * 0.071f);
+  const float fine_noise = noise3(fine_position);
+  const float formation_target = cloud_pattern(uv, pattern, amount, time, seed, params);
+
+  // Auto resets write the chosen source directly; Draw resets remain empty.
+  if (params.flow_controls.w > 0.5f) {
+    const float reset_density = automatic > 0.5f ? formation_target : 0.0f;
+    next_volume[linear] = convert_half4_rte((float4)(reset_density, fine_noise, formation_target, 1.0f));
+    return;
+  }
+
+  const float3 velocity = flow_velocity(uv, time, params);
+  const float3 previous_uv_unwrapped = uv - (velocity / world_size) * dt;
+  const float3 previous_uv = (float3)(
+      fract1(previous_uv_unwrapped.x),
+      clamp(previous_uv_unwrapped.y, 0.001f, 0.999f),
+      fract1(previous_uv_unwrapped.z));
+
+  float density = sample_volume_linear(
+      previous_volume, volume_width, volume_height, volume_depth, previous_uv).x;
+
+  density *= exp(-params.flow_controls.x * dt);
+
+  const float edge_weight = clamp(4.0f * density * (1.0f - density), 0.0f, 1.0f);
+  const float tear_mask = smoothstep(0.48f, 0.88f, fine_noise)
+      * (0.12f + edge_weight * 0.88f);
+  density = fmax(0.0f, density - params.flow_controls.y * tear_mask * dt * 0.34f);
+
+  if (automatic > 0.5f && dt > 0.0f) {
+    const float source_rate = mix(0.75f, 2.7f, amount);
+    const float source_blend = 1.0f - exp(-source_rate * dt);
+    density = mix(density, fmax(density, formation_target), source_blend);
+  }
+
+  if (params.brush_controls.y > 0.5f) {
+    const float3 brush_delta_world = (uv - params.brush_center_radius.xyz) * world_size;
+    const float brush_distance = length(brush_delta_world);
+    const float radius_world = fmax(params.brush_center_radius.w * world_size.x, 0.001f);
+    const float falloff = 1.0f - smoothstep(radius_world * 0.32f, radius_world, brush_distance);
+    const float signed_strength = params.brush_controls.x * params.brush_controls.z;
+    density += signed_strength * falloff * 0.13f;
+  }
+
+  density = clamp(density, 0.0f, 1.0f);
+  next_volume[linear] = convert_half4_rte((float4)(density, fine_noise, formation_target, 1.0f));
+}

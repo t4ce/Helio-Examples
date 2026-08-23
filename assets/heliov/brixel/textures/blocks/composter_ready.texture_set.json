@@ -1,0 +1,8 @@
+{
+    "format_version": "1.16.100",
+    "minecraft:texture_set": {
+        "color": "composter_ready",
+        "metalness_emissive_roughness": "composter_ready_mer",
+        "normal": "composter_ready_normal"
+    }
+}

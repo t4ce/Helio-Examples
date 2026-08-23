@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07101b" />
+  <title>Cloud Engine — WebGPU Cloud Lab</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <canvas id="cloudCanvas" aria-label="Interactive volumetric cloud renderer"></canvas>
+
+  <aside id="controlPanel" class="panel" aria-label="Cloud controls">
+    <header class="panel__header">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img">
+            <path d="M8.1 23.8h15.4a5.4 5.4 0 0 0 .2-10.8 8.2 8.2 0 0 0-15.4 2.3A4.3 4.3 0 0 0 8.1 23.8Z" />
+          </svg>
+        </div>
+        <div class="brand__copy">
+          <strong>Cloud Engine</strong>
+          <span>WebGPU cloud lab</span>
+        </div>
+      </div>
+      <button id="collapsePanel" class="icon-button" type="button" aria-label="Collapse controls" aria-expanded="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+      </button>
+    </header>
+
+    <div class="panel__body">
+      <div class="status-strip">
+        <span id="gpuStatus" class="status-dot status-dot--loading">Starting GPU</span>
+        <span id="fpsReadout" class="mono">-- fps</span>
+      </div>
+
+      <section class="control-section control-section--flush">
+        <div class="mode-switch" role="group" aria-label="Cloud generation mode">
+          <button id="modeAuto" class="mode-switch__button is-active" type="button" aria-pressed="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.34-5.66M4 4v6h6" /></svg>
+            Auto
+          </button>
+          <button id="modeDraw" class="mode-switch__button" type="button" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.7-1 9.9-9.9a2.1 2.1 0 0 0-3-3L5.7 16 4 20Z" /><path d="m13.8 7.9 2.3 2.3" /></svg>
+            Draw
+          </button>
+        </div>
+      </section>
+
+      <section class="control-section">
+        <div class="section-title">
+          <span>Formation</span>
+          <span id="formationHint" class="section-title__hint">continuous generation</span>
+        </div>
+
+        <label class="field field--stacked" for="patternSelect">
+          <span>Pattern</span>
+          <select id="patternSelect">
+            <option value="0">Cumulus field</option>
+            <option value="1">Layered deck</option>
+            <option value="2">High wisps</option>
+            <option value="3">Storm towers</option>
+            <option value="4">Broken cells</option>
+            <option value="5">Moon scrolls</option>
+            <option value="6">Wind ribbons</option>
+          </select>
+        </label>
+
+        <label class="field field--range" for="cloudAmount">
+          <span>Cloud amount</span>
+          <output id="cloudAmountValue">58%</output>
+          <input id="cloudAmount" type="range" min="0" max="1" value="0.58" step="0.01" />
+        </label>
+      </section>
+
+      <section class="control-section">
+        <div class="section-title"><span>Look</span></div>
+
+        <label class="field field--stacked" for="styleSelect">
+          <span>Render style</span>
+          <select id="styleSelect">
+            <option value="realistic" selected>Realistic volumetric</option>
+            <option value="artistic">Artistic moon-scroll</option>
+          </select>
+        </label>
+      </section>
+
+      <section id="artControls" class="control-section control-section--art" aria-hidden="true">
+        <div class="section-title">
+          <span>Art direction</span>
+          <span class="section-title__hint">sculpted curls · toon light · moon disc</span>
+        </div>
+
+        <label class="field field--stacked" for="artPreset">
+          <span>Palette preset</span>
+          <select id="artPreset">
+            <option value="verdant" selected>Verdant moon</option>
+            <option value="porcelain">Blue porcelain</option>
+            <option value="ember">Amber dusk</option>
+            <option value="violet">Violet night</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+
+        <div class="color-grid">
+          <label class="field field--color field--color-compact" for="artCloudColor">
+            <span>Cloud</span>
+            <span class="color-control">
+              <input id="artCloudColor" type="color" value="#3dad91" />
+              <output id="artCloudColorValue" class="mono">#3DAD91</output>
+            </span>
+          </label>
+
+          <label class="field field--color field--color-compact" for="artShadowColor">
+            <span>Shadow</span>
+            <span class="color-control">
+              <input id="artShadowColor" type="color" value="#075653" />
+              <output id="artShadowColorValue" class="mono">#075653</output>
+            </span>
+          </label>
+
+          <label class="field field--color field--color-compact" for="artSkyColor">
+            <span>Sky</span>
+            <span class="color-control">
+              <input id="artSkyColor" type="color" value="#073f42" />
+              <output id="artSkyColorValue" class="mono">#073F42</output>
+            </span>
+          </label>
+
+          <label class="field field--color field--color-compact" for="artMoonColor">
+            <span>Moon</span>
+            <span class="color-control">
+              <input id="artMoonColor" type="color" value="#ffe875" />
+              <output id="artMoonColorValue" class="mono">#FFE875</output>
+            </span>
+          </label>
+        </div>
+
+        <label class="field field--range" for="artCurl">
+          <span>Curl field</span>
+          <output id="artCurlValue">1.10</output>
+          <input id="artCurl" type="range" min="0" max="2.5" value="1.10" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="artRibbon">
+          <span>Ribbon stretch</span>
+          <output id="artRibbonValue">72%</output>
+          <input id="artRibbon" type="range" min="0" max="1.5" value="0.72" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="artSculpt">
+          <span>Sculpted body</span>
+          <output id="artSculptValue">78%</output>
+          <input id="artSculpt" type="range" min="0" max="1" value="0.78" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="artBands">
+          <span>Toon bands</span>
+          <output id="artBandsValue">5</output>
+          <input id="artBands" type="range" min="2" max="8" value="5" step="1" />
+        </label>
+
+        <label class="field field--range" for="artOutline">
+          <span>Ink edge</span>
+          <output id="artOutlineValue">62%</output>
+          <input id="artOutline" type="range" min="0" max="1.5" value="0.62" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="artMoonSize">
+          <span>Moon size</span>
+          <output id="artMoonSizeValue">10.3°</output>
+          <input id="artMoonSize" type="range" min="0.035" max="0.36" value="0.18" step="0.005" />
+        </label>
+
+        <label class="field field--range" for="artMoonGlow">
+          <span>Moon glow</span>
+          <output id="artMoonGlowValue">1.15</output>
+          <input id="artMoonGlow" type="range" min="0" max="2.5" value="1.15" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="artGrain">
+          <span>Print grain</span>
+          <output id="artGrainValue">20%</output>
+          <input id="artGrain" type="range" min="0" max="1" value="0.20" step="0.01" />
+        </label>
+      </section>
+
+      <section class="control-section">
+        <div class="section-title"><span>Air</span></div>
+
+        <label class="field field--range" for="windSpeed">
+          <span>Wind speed</span>
+          <output id="windSpeedValue">0.55</output>
+          <input id="windSpeed" type="range" min="0" max="2.5" value="0.55" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="windDirection">
+          <span>Wind direction</span>
+          <output id="windDirectionValue">18°</output>
+          <input id="windDirection" type="range" min="-180" max="180" value="18" step="1" />
+        </label>
+
+        <label class="field field--range" for="turbulence">
+          <span>Turbulence</span>
+          <output id="turbulenceValue">55%</output>
+          <input id="turbulence" type="range" min="0" max="1.5" value="0.55" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="tearing">
+          <span>Soft tearing</span>
+          <output id="tearingValue">35%</output>
+          <input id="tearing" type="range" min="0" max="1.5" value="0.35" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="rotation">
+          <span>Drift rotation</span>
+          <output id="rotationValue">12%</output>
+          <input id="rotation" type="range" min="-1" max="1" value="0.12" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="dissipation">
+          <span>Fade rate</span>
+          <output id="dissipationValue">8%</output>
+          <input id="dissipation" type="range" min="0" max="0.7" value="0.08" step="0.01" />
+        </label>
+      </section>
+
+      <section id="drawControls" class="control-section control-section--draw" aria-hidden="true">
+        <div class="section-title">
+          <span>Brush</span>
+          <span class="section-title__hint">Shift / right-click erases · wheel changes depth</span>
+        </div>
+
+        <label class="field field--range" for="brushSize">
+          <span>Brush size</span>
+          <output id="brushSizeValue">9%</output>
+          <input id="brushSize" type="range" min="0.025" max="0.22" value="0.09" step="0.005" />
+        </label>
+
+        <label class="field field--range" for="brushStrength">
+          <span>Brush strength</span>
+          <output id="brushStrengthValue">72%</output>
+          <input id="brushStrength" type="range" min="0.05" max="1" value="0.72" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="brushDepth">
+          <span>Brush depth</span>
+          <output id="brushDepthValue">42%</output>
+          <input id="brushDepth" type="range" min="0.04" max="0.96" value="0.42" step="0.01" />
+        </label>
+      </section>
+
+      <section class="control-section">
+        <div class="section-title">
+          <span>Camera</span>
+          <span id="cameraReadout" class="section-title__hint mono">0.0 · 1.7 · -4.6</span>
+        </div>
+
+        <div class="action-grid">
+          <button id="flyButton" class="action-button action-button--primary" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M12 4v16" /><circle cx="12" cy="12" r="3" /></svg>
+            <span>Enter flycam</span>
+          </button>
+          <button id="resetCameraButton" class="action-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.34-5.66M4 4v6h6" /></svg>
+            Reset camera
+          </button>
+        </div>
+
+        <label class="field field--range" for="cameraFov">
+          <span>Field of view</span>
+          <output id="cameraFovValue">54°</output>
+          <input id="cameraFov" type="range" min="35" max="90" value="54" step="1" />
+        </label>
+
+        <label class="field field--range" for="cameraSpeed">
+          <span>Fly speed</span>
+          <output id="cameraSpeedValue">4.00</output>
+          <input id="cameraSpeed" type="range" min="0.4" max="14" value="4" step="0.1" />
+        </label>
+
+        <label class="field field--range" for="cameraSensitivity">
+          <span>Mouse look</span>
+          <output id="cameraSensitivityValue">0.12</output>
+          <input id="cameraSensitivity" type="range" min="0.03" max="0.35" value="0.12" step="0.01" />
+        </label>
+      </section>
+
+      <section class="control-section">
+        <div class="section-title"><span>Sun &amp; render</span></div>
+
+        <label class="field field--color" for="sunColor">
+          <span>Sun color</span>
+          <span class="color-control">
+            <input id="sunColor" type="color" value="#fff0d2" />
+            <output id="sunColorValue" class="mono">#FFF0D2</output>
+          </span>
+        </label>
+
+        <label class="field field--range" for="sunElevation">
+          <span>Sun elevation</span>
+          <output id="sunElevationValue">27°</output>
+          <input id="sunElevation" type="range" min="-15" max="82" value="27" step="1" />
+        </label>
+
+        <label class="field field--range" for="sunAzimuth">
+          <span>Sun azimuth</span>
+          <output id="sunAzimuthValue">22°</output>
+          <input id="sunAzimuth" type="range" min="-180" max="180" value="22" step="1" />
+        </label>
+
+        <label class="field field--range" for="sunIntensity">
+          <span>Sun intensity</span>
+          <output id="sunIntensityValue">1.15</output>
+          <input id="sunIntensity" type="range" min="0" max="3" value="1.15" step="0.01" />
+        </label>
+
+        <label class="field field--range" for="exposure">
+          <span>Exposure</span>
+          <output id="exposureValue">0.95</output>
+          <input id="exposure" type="range" min="0.35" max="2.4" value="0.95" step="0.01" />
+        </label>
+
+        <label class="field field--stacked" for="qualitySelect">
+          <span>Quality</span>
+          <select id="qualitySelect">
+            <option value="eco">Eco · 48 steps</option>
+            <option value="live" selected>Live · 68 steps</option>
+            <option value="still">Still · 104 steps</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="control-section">
+        <div class="section-title">
+          <span>Configuration</span>
+          <span class="section-title__hint">panel values · camera · seed</span>
+        </div>
+
+        <div class="action-grid">
+          <button id="exportConfigButton" class="action-button action-button--primary" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 20h14" /></svg>
+            Export JSON
+          </button>
+          <button id="loadConfigButton" class="action-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V9M7 14l5-5 5 5" /><path d="M5 4h14" /></svg>
+            Load JSON
+          </button>
+        </div>
+        <input id="configFileInput" class="file-input" type="file" accept=".json,application/json" />
+        <p class="config-hint">Saves every panel setting, the camera pose, pause state, and procedural seed. The live painted voxel volume is not embedded.</p>
+      </section>
+
+      <section class="control-section control-section--actions">
+        <div class="action-grid">
+          <button id="pauseButton" class="action-button action-button--primary" type="button">
+            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z" /></svg>
+            <span>Pause</span>
+          </button>
+          <button id="clearButton" class="action-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13" /></svg>
+            Clear
+          </button>
+          <button id="reseedButton" class="action-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 20v-6h-6" /></svg>
+            Reseed
+          </button>
+          <button id="captureButton" class="action-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z" /><circle cx="12" cy="13.5" r="3.5" /></svg>
+            Capture
+          </button>
+        </div>
+        <p class="keyboard-hint"><kbd>F</kbd> fly · <kbd>WASD</kbd> move · <kbd>Q/E</kbd> vertical · <kbd>Space</kbd> pause · <kbd>H</kbd> panel</p>
+      </section>
+    </div>
+  </aside>
+
+  <div id="drawBadge" class="draw-badge" aria-hidden="true">
+    <span class="draw-badge__dot"></span>
+    Paint clouds · Shift erases · wheel sets depth · F enters flycam
+  </div>
+
+  <div id="flyHud" class="fly-hud" aria-hidden="true">
+    <div class="fly-crosshair" aria-hidden="true"></div>
+    <div class="fly-badge">
+      Flycam · mouse look · WASD move · Q/E vertical · Shift boost · Esc releases
+    </div>
+  </div>
+
+  <div id="brushCursor" class="brush-cursor" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="unsupported" class="unsupported" hidden>
+    <div class="unsupported__card">
+      <div class="unsupported__icon" aria-hidden="true">☁</div>
+      <h1>WebGPU is required</h1>
+      <p id="unsupportedMessage">Open this project from localhost in a current WebGPU-capable browser.</p>
+      <code>python3 -m http.server 8080</code>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
