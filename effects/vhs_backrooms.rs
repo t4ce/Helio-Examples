@@ -25,8 +25,7 @@
 //!   Left stick  — move (XR)
 //!   Right stick — turn (XR)
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use helio::{
     required_experimental_features, required_wgpu_features, required_wgpu_limits, Camera,
@@ -34,7 +33,6 @@ use helio::{
     Movability, ObjectDescriptor, Renderer, RendererConfig, Scene,
 };
 use helio_default_graphs::build_default_graph_with_user_effects;
-use helio_pass_postprocess::PostProcessPass;
 use libhelio::{PostProcessSettings, PostProcessVolumeDescriptor};
 use v3_demo_common::{box_mesh, make_material, point_light};
 

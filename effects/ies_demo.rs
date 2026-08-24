@@ -13,12 +13,11 @@
 //!   G           — toggle gobo on all lights
 //!   Escape      — release / exit
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use helio::{
     required_experimental_features, required_wgpu_features, required_wgpu_limits, Camera,
-    DebugDrawState, Renderer, RendererConfig, Scene, TonemapOperator,
+    DebugDrawState, Renderer, RendererConfig, Scene,
 };
 use helio_default_graphs::build_default_graph;
 use v3_demo_common::{make_material, plane_mesh};

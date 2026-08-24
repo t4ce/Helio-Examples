@@ -1,18 +1,6 @@
-//! Lightweight terminal launcher for the Helio examples workspace.
+//! Lightweight egui launcher for the Helio examples workspace.
 
-use std::{io, path::PathBuf, process::Command, time::Duration};
-
-use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use ratatui::{
-    backend::CrosstermBackend,
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, List, ListItem, ListState},
-    Terminal,
-};
+use std::{path::PathBuf, process::Command};
 
 struct Entry {
     label: &'static str,
@@ -34,13 +22,13 @@ macro_rules! demo {
 
 const ENTRIES: &[Entry] = &[
     Entry {
-        label: "Web: build and serve all demos",
+        label: "Build and serve web demos",
         package: "helio-web-tools",
         bin: "web",
         args: &[],
     },
     Entry {
-        label: "Web: headless build",
+        label: "Build web demos (headless)",
         package: "helio-web-tools",
         bin: "web",
         args: &["--headless"],
@@ -74,79 +62,69 @@ const ENTRIES: &[Entry] = &[
     demo!("VR desktop mirror", "vr_demo"),
 ];
 
-fn select_entry() -> io::Result<Option<&'static Entry>> {
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
-    let mut terminal = Terminal::new(CrosstermBackend::new(stdout))?;
-    let mut state = ListState::default().with_selected(Some(0));
-
-    let result = loop {
-        terminal.draw(|frame| {
-            let list = List::new(ENTRIES.iter().map(|entry| ListItem::new(entry.label)))
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title(" Helio Examples — Enter launch · q quit "),
-                )
-                .highlight_symbol("▶ ")
-                .highlight_style(
-                    Style::default()
-                        .fg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
-                );
-            frame.render_stateful_widget(list, frame.area(), &mut state);
-        })?;
-
-        if event::poll(Duration::from_millis(250))? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind != KeyEventKind::Press {
-                    continue;
-                }
-                let selected = state.selected().unwrap_or(0);
-                match key.code {
-                    KeyCode::Up => state.select(Some(selected.saturating_sub(1))),
-                    KeyCode::Down => state.select(Some((selected + 1).min(ENTRIES.len() - 1))),
-                    KeyCode::Enter => break Some(&ENTRIES[selected]),
-                    KeyCode::Char('q') | KeyCode::Esc => break None,
-                    _ => {}
-                }
-            }
-        }
-    };
-
-    disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-    Ok(result)
+struct Hub {
+    examples_root: PathBuf,
+    status: String,
 }
 
-fn main() -> io::Result<()> {
-    let Some(entry) = select_entry()? else {
-        return Ok(());
-    };
+impl Hub {
+    fn launch(&mut self, entry: &Entry) {
+        let mut command = Command::new("cargo");
+        command
+            .args(["run", "--manifest-path"])
+            .arg(self.examples_root.join("Cargo.toml"))
+            .args(["-p", entry.package, "--bin", entry.bin]);
+        if !entry.args.is_empty() {
+            command.arg("--").args(entry.args);
+        }
+        self.status = match command.spawn() {
+            Ok(_) => format!("Started {}", entry.label),
+            Err(error) => format!("Could not start {}: {error}", entry.label),
+        };
+    }
+}
+
+impl eframe::App for Hub {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui, _: &mut eframe::Frame) {
+        ui.heading("Helio Examples");
+        ui.label("Choose a demo or build action.");
+        ui.separator();
+        eframe::egui::ScrollArea::vertical().show(ui, |ui| {
+            for entry in ENTRIES {
+                if ui.button(entry.label).clicked() {
+                    self.launch(entry);
+                }
+            }
+        });
+        ui.separator();
+        ui.small(&self.status);
+    }
+}
+
+fn main() -> eframe::Result {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let examples_root = if manifest_dir
         .file_name()
         .is_some_and(|name| name == "web-tools")
     {
-        manifest_dir
-            .parent()
-            .expect("web-tools must live under Helio-Examples")
-            .to_path_buf()
+        manifest_dir.parent().unwrap().to_path_buf()
     } else {
         manifest_dir
     };
-    let mut command = Command::new("cargo");
-    command
-        .args(["run", "--manifest-path"])
-        .arg(examples_root.join("Cargo.toml"))
-        .args(["-p", entry.package, "--bin", entry.bin]);
-    if !entry.args.is_empty() {
-        command.arg("--").args(entry.args);
-    }
-    let status = command.status()?;
-    if !status.success() {
-        std::process::exit(status.code().unwrap_or(1));
-    }
-    Ok(())
+    eframe::run_native(
+        "Helio Examples",
+        eframe::NativeOptions {
+            renderer: eframe::Renderer::Glow,
+            viewport: eframe::egui::ViewportBuilder::default()
+                .with_inner_size([420.0, 620.0])
+                .with_min_inner_size([320.0, 400.0]),
+            ..Default::default()
+        },
+        Box::new(move |_| {
+            Ok(Box::new(Hub {
+                examples_root,
+                status: "Ready".into(),
+            }))
+        }),
+    )
 }

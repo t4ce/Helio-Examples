@@ -613,5 +613,4 @@ fn main() {
     let mut app = App { state: None };
     event_loop.run_app(&mut app).unwrap();
 }
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;

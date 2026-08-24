@@ -5,6 +5,9 @@ edition = "2021"
 workspace = "../Helio"
 default-run = "helio_examples"
 
+[lib]
+path = "v3_demo_common.rs"
+
 [[bin]]
 name = "helio_examples"
 path = "web-tools/src/hub.rs"
@@ -310,8 +313,7 @@ env_logger = { workspace = true }
 log = { workspace = true }
 wgpu = { workspace = true }
 pollster = { workspace = true }
-ratatui = "0.29"
-crossterm = "0.28"
+eframe = { version = "0.35", default-features = false, features = ["glow", "wayland", "x11"] }
 microfont = "3.7.8"
 salva3d = { version = "0.9", features = ["dim3", "parry", "rapier"] }
 

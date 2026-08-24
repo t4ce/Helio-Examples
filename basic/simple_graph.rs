@@ -10,8 +10,7 @@
 //!   IJKL        – keyboard look
 //!   Escape      – release cursor, second press quits
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -217,7 +216,7 @@ impl ApplicationHandler for App {
         let debug_state = Arc::new(std::sync::Mutex::new(DebugDrawState::default()));
         let mut graph = build_simple_graph(&device, &queue, surface_format);
         graph.lock(size.width, size.height);
-        let mut renderer = Renderer::new(
+        let renderer = Renderer::new(
             device.clone(),
             queue.clone(),
             config.surface_format,

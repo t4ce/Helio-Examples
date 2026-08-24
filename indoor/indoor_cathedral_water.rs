@@ -19,8 +19,7 @@
 //!   Mouse drag  — look around (click to grab cursor)
 //!   Escape      — release cursor / exit
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use helio::Movability;
 use helio::{
@@ -32,7 +31,7 @@ use helio_default_graphs::build_default_graph;
 use helio_pass_perf_overlay::PerfOverlayMode;
 use helio_pass_water_sim::WaterSimPass;
 use v3_demo_common::{
-    box_mesh, insert_object, insert_object_with_movability, make_material, plane_mesh, point_light,
+    box_mesh, insert_object_with_movability, make_material, plane_mesh, point_light,
     sphere_mesh,
 };
 

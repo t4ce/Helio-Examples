@@ -29,8 +29,7 @@
 //!                 is; off is the seamless, invisible-portal game-mode look.
 //!   Escape      — release cursor / exit
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use helio::{
     required_experimental_features, required_wgpu_features, required_wgpu_limits, Camera,

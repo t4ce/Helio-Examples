@@ -20,8 +20,7 @@
 //!   IJKL — keyboard look
 //!   Escape — release cursor / exit
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 use v3_demo_common::{
     box_mesh, insert_object, insert_object_with_movability, make_material, point_light, sphere_mesh,
 };
@@ -38,7 +37,7 @@ use salva3d::{
     LiquidWorld,
 };
 use std::collections::HashSet;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use winit::{
@@ -575,7 +574,7 @@ impl ApplicationHandler for App {
         // Visual representation constants
         let container_size = 20.0;
         let wall_height = 6.0;
-        let wall_thickness = 0.5;
+        let _wall_thickness = 0.5;
 
         // Render container floor
         let floor_mesh = renderer

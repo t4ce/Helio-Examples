@@ -10,15 +10,14 @@
 //!   Mouse drag  — look around (click to grab cursor)
 //!   Escape      — release cursor / exit
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use helio::{
     required_experimental_features, required_wgpu_features, required_wgpu_limits, Camera,
-    DebugDrawState, HelioAction, HelioCommandBridge, LightId, Renderer, RendererConfig, Scene,
+    DebugDrawState, LightId, Renderer, RendererConfig, Scene,
 };
 use helio_default_graphs::build_default_graph;
-use v3_demo_common::{box_mesh, make_material, plane_mesh, point_light};
+use v3_demo_common::{box_mesh, make_material, point_light};
 
 use winit::{
     application::ApplicationHandler,

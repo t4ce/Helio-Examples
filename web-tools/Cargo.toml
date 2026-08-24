@@ -15,5 +15,4 @@ path = "src/main.rs"
 
 [dependencies]
 tiny_http = "0.12"
-ratatui = "0.29"
-crossterm = "0.28"
+eframe = { version = "0.35", default-features = false, features = ["glow", "wayland", "x11"] }

@@ -11,7 +11,7 @@
 //! ```
 //!
 //! Or run the web tool (`cargo run -p helio-web-tools --bin web`) to build every demo at
-//! once — interactively (TUI) or headless (`--headless`, used by CI). It also
+//! once — interactively (egui) or headless (`--headless`, used by CI). It also
 //! writes the landing-page HTML and serves the result locally.
 
 mod common;

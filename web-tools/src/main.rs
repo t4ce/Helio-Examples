@@ -1,9 +1,8 @@
 //! `cargo run -p helio-web-tools --bin web` — builds every WASM demo and serves them locally.
 //!
 //! Two modes:
-//!   * **Interactive** (default, when stdout is a TTY): a fullscreen TUI shows
-//!     per-demo build progress; press Enter when done to serve on
-//!     http://127.0.0.1:8000. Arrow keys navigate, Enter views live logs, Q quits.
+//!   * **Interactive** (default, when stdout is a TTY): an egui window shows
+//!     per-demo build progress and live logs, then offers to serve the result.
 //!   * **Headless** (`--headless`, or when `CI` is set / stdout is not a TTY):
 //!     builds every demo serially, streams a plain log, writes the site to
 //!     `target/wasm-prebuilt`, and exits non-zero if any demo failed. This is
@@ -18,17 +17,6 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
-};
-use crossterm::ExecutableCommand;
-use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::style::{Color, Modifier, Style, Stylize};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap};
-use ratatui::{Frame, Terminal};
 
 // ── Demo catalogue ──────────────────────────────────────────────────────────
 // The one source of truth for which demos exist and how their landing pages
@@ -167,7 +155,7 @@ fn index_page_html(demos: &[Demo]) -> String {
     )
 }
 
-// ── Build status (TUI) ────────────────────────────────────────────────────────
+// ── Build status (egui) ───────────────────────────────────────────────────────
 
 #[derive(Clone)]
 enum Status {
@@ -183,55 +171,44 @@ struct BuildState {
 
 struct App {
     builds: Vec<BuildState>,
-    list_state: ListState,
-    log_scroll: usize,
-    show_log: bool,
-    total: usize,
+    selected: usize,
+    running: Arc<AtomicBool>,
+    out_base: PathBuf,
+    serving: bool,
 }
 
 impl App {
-    fn new() -> Self {
-        let total = DEMOS.len();
-        let builds = (0..total)
+    fn new(running: Arc<AtomicBool>, out_base: PathBuf) -> Self {
+        let builds = (0..DEMOS.len())
             .map(|_| BuildState {
                 log: Arc::new(Mutex::new(Vec::new())),
             })
             .collect();
-        let mut list_state = ListState::default();
-        list_state.select(Some(0));
         Self {
             builds,
-            list_state,
-            log_scroll: 0,
-            show_log: false,
-            total,
+            selected: 0,
+            running,
+            out_base,
+            serving: false,
         }
     }
 
-    fn status_icon(frame: u64, s: &Status) -> &'static str {
-        let spinners = &["◴", "◷", "◶", "◵", "◐", "◑", "◒", "◓"][..];
-        match s {
-            Status::Pending => "  ",
-            Status::Building => spinners[(frame as usize) % spinners.len()],
-            Status::Success(_) => "✓",
-            Status::Failed => "✗",
-        }
-    }
-
-    fn status_color(s: &Status) -> Color {
-        match s {
-            Status::Pending => Color::DarkGray,
-            Status::Building => Color::Cyan,
-            Status::Success(_) => Color::Green,
-            Status::Failed => Color::Red,
-        }
-    }
-
-    fn status_text(s: &Status) -> String {
-        match s {
-            Status::Pending | Status::Building => String::new(),
-            Status::Success(kb) => format!("  {} KiB", kb),
-            Status::Failed => "  FAILED".into(),
+    fn status(&self, index: usize) -> Status {
+        let log = self.builds[index].log.lock().unwrap();
+        let last = log.last().map(String::as_str).unwrap_or_default();
+        if last.starts_with("OK") {
+            Status::Success(
+                last.trim_start_matches("OK (")
+                    .trim_end_matches(" KiB)")
+                    .parse()
+                    .unwrap_or(0),
+            )
+        } else if last == "FAILED" {
+            Status::Failed
+        } else if log.is_empty() {
+            Status::Pending
+        } else {
+            Status::Building
         }
     }
 }
@@ -468,7 +445,7 @@ fn main() {
     if headless_requested() {
         std::process::exit(run_headless(&manifest_dir, &out_base, cc.as_deref()));
     }
-    run_tui(manifest_dir, out_base, cc);
+    run_gui(manifest_dir, out_base, cc);
 }
 
 /// Build every demo serially, logging plainly. Returns a process exit code.
@@ -512,289 +489,411 @@ fn run_headless(manifest_dir: &Path, out_base: &Path, cc: Option<&str>) -> i32 {
     }
 }
 
-/// Interactive TUI: build in the background, then optionally serve.
-fn run_tui(manifest_dir: PathBuf, out_base: PathBuf, cc: Option<String>) {
-    enable_raw_mode().unwrap();
-    std::io::stdout().execute(EnterAlternateScreen).unwrap();
-    let mut terminal =
-        Terminal::new(ratatui::backend::CrosstermBackend::new(std::io::stdout())).unwrap();
-    terminal.clear().unwrap();
+#[cfg(any())]
+mod removed_terminal_ui {
+    use super::*;
 
-    let mut app = App::new();
-    let running = Arc::new(AtomicBool::new(true));
+    /// Former interactive terminal monitor.
+    fn run_tui(manifest_dir: PathBuf, out_base: PathBuf, cc: Option<String>) {
+        enable_raw_mode().unwrap();
+        std::io::stdout().execute(EnterAlternateScreen).unwrap();
+        let mut terminal =
+            Terminal::new(removed_dependency::Backend::new(std::io::stdout())).unwrap();
+        terminal.clear().unwrap();
 
-    // ── Build worker ─────────────────────────────────────────────────────────
-    // Every demo is the same crate built with a different feature flag against
-    // one shared cargo target dir, so they cannot build concurrently: parallel
-    // runs serialize on cargo's target lock and still race on the shared output
-    // wasm. A single worker walks the list one demo at a time while the TUI
-    // stays responsive.
-    let jobs: Vec<(&'static Demo, PathBuf, Arc<Mutex<Vec<String>>>)> = DEMOS
-        .iter()
-        .enumerate()
-        .map(|(i, demo)| {
-            (
-                demo,
-                out_base.join(demo.name),
-                Arc::clone(&app.builds[i].log),
-            )
-        })
-        .collect();
-    {
-        let manifest_dir = manifest_dir.clone();
-        let running = Arc::clone(&running);
-        std::thread::spawn(move || {
-            for (demo, out_dir, log) in jobs {
-                if !running.load(Ordering::Relaxed) {
-                    break;
+        let mut app = App::new();
+        let running = Arc::new(AtomicBool::new(true));
+
+        // ── Build worker ─────────────────────────────────────────────────────────
+        // Every demo is the same crate built with a different feature flag against
+        // one shared cargo target dir, so they cannot build concurrently: parallel
+        // runs serialize on cargo's target lock and still race on the shared output
+        // wasm. A single worker walks the list one demo at a time while the UI
+        // stays responsive.
+        let jobs: Vec<(&'static Demo, PathBuf, Arc<Mutex<Vec<String>>>)> = DEMOS
+            .iter()
+            .enumerate()
+            .map(|(i, demo)| {
+                (
+                    demo,
+                    out_base.join(demo.name),
+                    Arc::clone(&app.builds[i].log),
+                )
+            })
+            .collect();
+        {
+            let manifest_dir = manifest_dir.clone();
+            let running = Arc::clone(&running);
+            std::thread::spawn(move || {
+                for (demo, out_dir, log) in jobs {
+                    if !running.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    build_demo(demo, &out_dir, &manifest_dir, cc.as_deref(), &log, &running);
                 }
-                build_demo(demo, &out_dir, &manifest_dir, cc.as_deref(), &log, &running);
-            }
-        });
-    }
+            });
+        }
 
-    // ── TUI event loop ────────────────────────────────────────────────────
-    let tick = std::time::Duration::from_millis(100);
-    let all_done = Arc::new(AtomicBool::new(false));
-    let serve_started = Arc::new(AtomicBool::new(false));
+        // ── Former event loop ─────────────────────────────────────────────────
+        let tick = std::time::Duration::from_millis(100);
+        let all_done = Arc::new(AtomicBool::new(false));
+        let serve_started = Arc::new(AtomicBool::new(false));
 
-    'main: loop {
-        let all_done_val = all_done.load(Ordering::Relaxed);
+        'main: loop {
+            let all_done_val = all_done.load(Ordering::Relaxed);
 
-        terminal.draw(|f| ui(f, &mut app, all_done_val)).unwrap();
+            terminal.draw(|f| ui(f, &mut app, all_done_val)).unwrap();
 
-        if event::poll(tick).unwrap() {
-            if let Event::Key(key) = event::read().unwrap() {
-                if key.kind == KeyEventKind::Press {
-                    match key.code {
-                        KeyCode::Char('q') | KeyCode::Esc if !app.show_log => break 'main,
-                        KeyCode::Down => {
-                            if app.show_log {
-                                app.log_scroll = app.log_scroll.saturating_add(1);
-                            } else {
-                                let i = app.list_state.selected().unwrap_or(0);
-                                if i + 1 < app.total {
-                                    app.list_state.select(Some(i + 1));
+            if event::poll(tick).unwrap() {
+                if let Event::Key(key) = event::read().unwrap() {
+                    if key.kind == KeyEventKind::Press {
+                        match key.code {
+                            KeyCode::Char('q') | KeyCode::Esc if !app.show_log => break 'main,
+                            KeyCode::Down => {
+                                if app.show_log {
+                                    app.log_scroll = app.log_scroll.saturating_add(1);
+                                } else {
+                                    let i = app.list_state.selected().unwrap_or(0);
+                                    if i + 1 < app.total {
+                                        app.list_state.select(Some(i + 1));
+                                    }
                                 }
                             }
-                        }
-                        KeyCode::Up => {
-                            if app.show_log {
-                                app.log_scroll = app.log_scroll.saturating_sub(1);
-                            } else {
-                                let i = app.list_state.selected().unwrap_or(0);
-                                if i > 0 {
-                                    app.list_state.select(Some(i - 1));
+                            KeyCode::Up => {
+                                if app.show_log {
+                                    app.log_scroll = app.log_scroll.saturating_sub(1);
+                                } else {
+                                    let i = app.list_state.selected().unwrap_or(0);
+                                    if i > 0 {
+                                        app.list_state.select(Some(i - 1));
+                                    }
                                 }
                             }
+                            KeyCode::Enter if !all_done_val || app.show_log => {
+                                app.show_log = !app.show_log;
+                                app.log_scroll = 0;
+                            }
+                            KeyCode::Enter => {
+                                // All done, Enter starts the server.
+                                serve_started.store(true, Ordering::Relaxed);
+                                break 'main;
+                            }
+                            KeyCode::Backspace | KeyCode::Esc if app.show_log => {
+                                app.show_log = false;
+                            }
+                            _ => {}
                         }
-                        KeyCode::Enter if !all_done_val || app.show_log => {
-                            app.show_log = !app.show_log;
-                            app.log_scroll = 0;
-                        }
-                        KeyCode::Enter => {
-                            // All done, Enter starts the server.
-                            serve_started.store(true, Ordering::Relaxed);
-                            break 'main;
-                        }
-                        KeyCode::Backspace | KeyCode::Esc if app.show_log => {
-                            app.show_log = false;
-                        }
-                        _ => {}
                     }
                 }
             }
-        }
 
-        if !all_done_val {
-            let done = app
-                .builds
-                .iter()
-                .filter(|b| {
-                    let last = b.log.lock().unwrap().last().cloned().unwrap_or_default();
-                    last.starts_with("OK") || last == "FAILED"
-                })
-                .count();
-            if done == app.total {
-                all_done.store(true, Ordering::Relaxed);
+            if !all_done_val {
+                let done = app
+                    .builds
+                    .iter()
+                    .filter(|b| {
+                        let last = b.log.lock().unwrap().last().cloned().unwrap_or_default();
+                        last.starts_with("OK") || last == "FAILED"
+                    })
+                    .count();
+                if done == app.total {
+                    all_done.store(true, Ordering::Relaxed);
+                }
             }
         }
+
+        running.store(false, Ordering::Relaxed);
+        disable_raw_mode().unwrap();
+        std::io::stdout().execute(LeaveAlternateScreen).unwrap();
+
+        if serve_started.load(Ordering::Relaxed) || all_done.load(Ordering::Relaxed) {
+            println!("\nServing at http://127.0.0.1:8000/");
+            serve(&out_base, "127.0.0.1:8000");
+        }
     }
 
-    running.store(false, Ordering::Relaxed);
-    disable_raw_mode().unwrap();
-    std::io::stdout().execute(LeaveAlternateScreen).unwrap();
+    // ── UI rendering ───────────────────────────────────────────────────────────
 
-    if serve_started.load(Ordering::Relaxed) || all_done.load(Ordering::Relaxed) {
-        println!("\nServing at http://127.0.0.1:8000/");
-        serve(&out_base, "127.0.0.1:8000");
+    fn ui(f: &mut Frame, app: &App, all_done: bool) {
+        if app.show_log {
+            log_ui(f, app);
+        } else {
+            list_ui(f, app, all_done);
+        }
+    }
+
+    fn list_ui(f: &mut Frame, app: &App, all_done: bool) {
+        let total = app.total;
+        let done = app
+            .builds
+            .iter()
+            .filter(|b| {
+                let last = b.log.lock().unwrap().last().cloned().unwrap_or_default();
+                last.starts_with("OK") || last == "FAILED"
+            })
+            .count();
+        let ok = app
+            .builds
+            .iter()
+            .filter(|b| {
+                b.log
+                    .lock()
+                    .unwrap()
+                    .last()
+                    .cloned()
+                    .unwrap_or_default()
+                    .starts_with("OK")
+            })
+            .count();
+        let fail = done.saturating_sub(ok);
+        let pct = if total > 0 {
+            done as f64 / total as f64
+        } else {
+            0.0
+        };
+        let frame = app
+            .builds
+            .iter()
+            .map(|b| b.log.lock().unwrap().len() as u64)
+            .sum::<u64>();
+
+        let bar_width = f.area().width.saturating_sub(4) as usize;
+        let filled = (pct * bar_width as f64).round() as usize;
+        let empty = bar_width.saturating_sub(filled);
+        let bar = format!("{}│{}", "█".repeat(filled), "░".repeat(empty));
+
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(1), Constraint::Min(1)])
+            .split(f.area());
+
+        // Header bar
+        let mut header_spans = vec![
+            Span::styled(" Helio ", Style::new().fg(Color::Magenta).bold()),
+            Span::raw("│ "),
+            Span::raw(format!("{total} demos  ")),
+            Span::styled(format!("✔ {ok}"), Style::new().fg(Color::Green).bold()),
+            Span::raw("  "),
+            Span::styled(format!("✘ {fail}"), Style::new().fg(Color::Red).bold()),
+            Span::raw(format!("  {done}/{total}  ")),
+            Span::styled(bar, Style::default().fg(Color::Cyan)),
+        ];
+        if all_done {
+            header_spans.push(Span::raw("  │  "));
+            header_spans.push(Span::styled(
+                "http://127.0.0.1:8000/",
+                Style::new().fg(Color::Green).bold(),
+            ));
+        }
+        let header = Paragraph::new(Line::from(header_spans)).block(Block::default());
+        f.render_widget(header, layout[0]);
+
+        // Demo list
+        let items: Vec<ListItem> = app
+            .builds
+            .iter()
+            .enumerate()
+            .map(|(i, b)| {
+                let last = b.log.lock().unwrap().last().cloned().unwrap_or_default();
+                let status = if last.starts_with("OK") {
+                    Status::Success(
+                        last.trim_start_matches("OK (")
+                            .trim_end_matches(" KiB)")
+                            .parse()
+                            .unwrap_or(0),
+                    )
+                } else if last == "FAILED" {
+                    Status::Failed
+                } else if !b.log.lock().unwrap().is_empty() {
+                    Status::Building
+                } else {
+                    Status::Pending
+                };
+                let icon = App::status_icon(frame, &status);
+                let color = App::status_color(&status);
+                let text = App::status_text(&status);
+                let name = DEMOS[i].name;
+                let is_selected = app.list_state.selected() == Some(i);
+                let bg = if is_selected {
+                    Color::DarkGray
+                } else {
+                    Color::Reset
+                };
+                let fg = if is_selected {
+                    Color::White
+                } else {
+                    Color::Reset
+                };
+                let icon_style = Style::default()
+                    .fg(color)
+                    .bg(bg)
+                    .add_modifier(Modifier::BOLD);
+                let name_style = Style::default().fg(fg).bg(bg);
+                let text_style = Style::default().fg(color).bg(bg);
+                ListItem::new(Line::from(vec![
+                    Span::styled(format!(" {} ", icon), icon_style),
+                    Span::styled(name, name_style),
+                    Span::styled(text, text_style),
+                ]))
+                .style(Style::default().bg(bg))
+            })
+            .collect();
+
+        let list = List::new(items)
+            .block(Block::default().borders(Borders::ALL).title(" Demos "))
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            );
+        f.render_stateful_widget(list, layout[1], &mut app.list_state.clone());
+    }
+
+    fn log_ui(f: &mut Frame, app: &App) {
+        let idx = app.list_state.selected().unwrap_or(0);
+        let name = DEMOS[idx].name;
+        let log = app.builds[idx].log.lock().unwrap();
+        let lines: Vec<Line> = log.iter().map(|l| Line::from(Span::raw(l))).collect();
+
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Min(1)])
+            .split(f.area());
+
+        let title = format!(" Build Log: {name}  ");
+        let log_widget = Paragraph::new(lines)
+            .block(Block::default().borders(Borders::ALL).title(title))
+            .scroll((app.log_scroll as u16, 0))
+            .wrap(Wrap { trim: false });
+        f.render_widget(log_widget, layout[1]);
+
+        let footer = Paragraph::new(Line::from(vec![
+            Span::raw(" ↑↓ Scroll  "),
+            Span::styled("Enter/BS", Style::new().bold()),
+            Span::raw(" Close  "),
+            Span::styled("Q", Style::new().bold()),
+            Span::raw(" Quit"),
+        ]))
+        .block(Block::default().borders(Borders::ALL));
+        f.render_widget(footer, layout[0]);
     }
 }
 
-// ── UI rendering ───────────────────────────────────────────────────────────
-
-fn ui(f: &mut Frame, app: &App, all_done: bool) {
-    if app.show_log {
-        log_ui(f, app);
-    } else {
-        list_ui(f, app, all_done);
-    }
-}
-
-fn list_ui(f: &mut Frame, app: &App, all_done: bool) {
-    let total = app.total;
-    let done = app
-        .builds
-        .iter()
-        .filter(|b| {
-            let last = b.log.lock().unwrap().last().cloned().unwrap_or_default();
-            last.starts_with("OK") || last == "FAILED"
-        })
-        .count();
-    let ok = app
-        .builds
-        .iter()
-        .filter(|b| {
-            b.log
-                .lock()
-                .unwrap()
-                .last()
-                .cloned()
-                .unwrap_or_default()
-                .starts_with("OK")
-        })
-        .count();
-    let fail = done.saturating_sub(ok);
-    let pct = if total > 0 {
-        done as f64 / total as f64
-    } else {
-        0.0
-    };
-    let frame = app
-        .builds
-        .iter()
-        .map(|b| b.log.lock().unwrap().len() as u64)
-        .sum::<u64>();
-
-    let bar_width = f.area().width.saturating_sub(4) as usize;
-    let filled = (pct * bar_width as f64).round() as usize;
-    let empty = bar_width.saturating_sub(filled);
-    let bar = format!("{}│{}", "█".repeat(filled), "░".repeat(empty));
-
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(1)])
-        .split(f.area());
-
-    // Header bar
-    let mut header_spans = vec![
-        Span::styled(" Helio ", Style::new().fg(Color::Magenta).bold()),
-        Span::raw("│ "),
-        Span::raw(format!("{total} demos  ")),
-        Span::styled(format!("✔ {ok}"), Style::new().fg(Color::Green).bold()),
-        Span::raw("  "),
-        Span::styled(format!("✘ {fail}"), Style::new().fg(Color::Red).bold()),
-        Span::raw(format!("  {done}/{total}  ")),
-        Span::styled(bar, Style::default().fg(Color::Cyan)),
-    ];
-    if all_done {
-        header_spans.push(Span::raw("  │  "));
-        header_spans.push(Span::styled(
-            "http://127.0.0.1:8000/",
-            Style::new().fg(Color::Green).bold(),
-        ));
-    }
-    let header = Paragraph::new(Line::from(header_spans)).block(Block::default());
-    f.render_widget(header, layout[0]);
-
-    // Demo list
-    let items: Vec<ListItem> = app
-        .builds
+fn run_gui(manifest_dir: PathBuf, out_base: PathBuf, cc: Option<String>) {
+    let running = Arc::new(AtomicBool::new(true));
+    let app = App::new(Arc::clone(&running), out_base.clone());
+    let jobs: Vec<_> = DEMOS
         .iter()
         .enumerate()
-        .map(|(i, b)| {
-            let last = b.log.lock().unwrap().last().cloned().unwrap_or_default();
-            let status = if last.starts_with("OK") {
-                Status::Success(
-                    last.trim_start_matches("OK (")
-                        .trim_end_matches(" KiB)")
-                        .parse()
-                        .unwrap_or(0),
-                )
-            } else if last == "FAILED" {
-                Status::Failed
-            } else if !b.log.lock().unwrap().is_empty() {
-                Status::Building
-            } else {
-                Status::Pending
-            };
-            let icon = App::status_icon(frame, &status);
-            let color = App::status_color(&status);
-            let text = App::status_text(&status);
-            let name = DEMOS[i].name;
-            let is_selected = app.list_state.selected() == Some(i);
-            let bg = if is_selected {
-                Color::DarkGray
-            } else {
-                Color::Reset
-            };
-            let fg = if is_selected {
-                Color::White
-            } else {
-                Color::Reset
-            };
-            let icon_style = Style::default()
-                .fg(color)
-                .bg(bg)
-                .add_modifier(Modifier::BOLD);
-            let name_style = Style::default().fg(fg).bg(bg);
-            let text_style = Style::default().fg(color).bg(bg);
-            ListItem::new(Line::from(vec![
-                Span::styled(format!(" {} ", icon), icon_style),
-                Span::styled(name, name_style),
-                Span::styled(text, text_style),
-            ]))
-            .style(Style::default().bg(bg))
+        .map(|(index, demo)| {
+            (
+                demo,
+                out_base.join(demo.name),
+                Arc::clone(&app.builds[index].log),
+            )
         })
         .collect();
+    std::thread::spawn(move || {
+        for (demo, out_dir, log) in jobs {
+            if !running.load(Ordering::Relaxed) {
+                break;
+            }
+            build_demo(demo, &out_dir, &manifest_dir, cc.as_deref(), &log, &running);
+        }
+    });
 
-    let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title(" Demos "))
-        .highlight_style(
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        );
-    f.render_stateful_widget(list, layout[1], &mut app.list_state.clone());
+    let options = eframe::NativeOptions {
+        renderer: eframe::Renderer::Glow,
+        viewport: eframe::egui::ViewportBuilder::default()
+            .with_inner_size([900.0, 650.0])
+            .with_min_inner_size([640.0, 420.0]),
+        ..Default::default()
+    };
+    let _ = eframe::run_native(
+        "Helio Web Demos",
+        options,
+        Box::new(move |_| Ok(Box::new(app))),
+    );
 }
 
-fn log_ui(f: &mut Frame, app: &App) {
-    let idx = app.list_state.selected().unwrap_or(0);
-    let name = DEMOS[idx].name;
-    let log = app.builds[idx].log.lock().unwrap();
-    let lines: Vec<Line> = log.iter().map(|l| Line::from(Span::raw(l))).collect();
+impl eframe::App for App {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui, _: &mut eframe::Frame) {
+        ui.ctx()
+            .request_repaint_after(std::time::Duration::from_millis(100));
+        let statuses: Vec<_> = (0..DEMOS.len()).map(|index| self.status(index)).collect();
+        let done = statuses
+            .iter()
+            .filter(|status| matches!(status, Status::Success(_) | Status::Failed))
+            .count();
+        let failed = statuses
+            .iter()
+            .filter(|status| matches!(status, Status::Failed))
+            .count();
 
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(1)])
-        .split(f.area());
+        ui.horizontal(|ui| {
+            ui.heading("Helio Web Demos");
+            ui.label(format!("{done}/{} complete", DEMOS.len()));
+            if failed > 0 {
+                ui.colored_label(eframe::egui::Color32::RED, format!("{failed} failed"));
+            }
+            if done == DEMOS.len() && !self.serving && ui.button("Serve on :8000").clicked() {
+                self.serving = true;
+                let root = self.out_base.clone();
+                std::thread::spawn(move || serve(&root, "127.0.0.1:8000"));
+            }
+            if self.serving {
+                ui.hyperlink("http://127.0.0.1:8000/");
+            }
+        });
+        ui.add(eframe::egui::ProgressBar::new(
+            done as f32 / DEMOS.len() as f32,
+        ));
+        ui.separator();
 
-    let title = format!(" Build Log: {name}  ");
-    let log_widget = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(title))
-        .scroll((app.log_scroll as u16, 0))
-        .wrap(Wrap { trim: false });
-    f.render_widget(log_widget, layout[1]);
+        ui.columns(2, |columns| {
+            eframe::egui::ScrollArea::vertical().show(&mut columns[0], |ui| {
+                eframe::egui::ScrollArea::vertical().show(ui, |ui| {
+                    for (index, demo) in DEMOS.iter().enumerate() {
+                        let prefix = match statuses[index] {
+                            Status::Pending => "○",
+                            Status::Building => "◌",
+                            Status::Success(_) => "✓",
+                            Status::Failed => "✗",
+                        };
+                        if ui
+                            .selectable_label(
+                                self.selected == index,
+                                format!("{prefix} {}", demo.name),
+                            )
+                            .clicked()
+                        {
+                            self.selected = index;
+                        }
+                    }
+                });
+            });
+            let ui = &mut columns[1];
+            let demo = &DEMOS[self.selected];
+            ui.heading(demo.title);
+            ui.label(demo.description);
+            if let Status::Success(kib) = statuses[self.selected] {
+                ui.label(format!("Built: {kib} KiB"));
+            }
+            ui.separator();
+            let log = self.builds[self.selected].log.lock().unwrap();
+            eframe::egui::ScrollArea::vertical()
+                .stick_to_bottom(true)
+                .show(ui, |ui| {
+                    for line in log.iter() {
+                        ui.monospace(line);
+                    }
+                });
+        });
+    }
 
-    let footer = Paragraph::new(Line::from(vec![
-        Span::raw(" ↑↓ Scroll  "),
-        Span::styled("Enter/BS", Style::new().bold()),
-        Span::raw(" Close  "),
-        Span::styled("Q", Style::new().bold()),
-        Span::raw(" Quit"),
-    ]))
-    .block(Block::default().borders(Borders::ALL));
-    f.render_widget(footer, layout[0]);
+    fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
+        self.running.store(false, Ordering::Relaxed);
+    }
 }
 
 // ── HTTP server ─────────────────────────────────────────────────────────────

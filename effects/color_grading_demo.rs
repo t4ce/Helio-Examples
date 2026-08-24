@@ -10,12 +10,11 @@
 //!   T/G         — cycle LUT size (16/32/64)
 //!   Escape      — release / exit
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use helio::{
     required_experimental_features, required_wgpu_features, required_wgpu_limits, Camera,
-    DebugDrawState, HdrOutputMode, Renderer, RendererConfig, Scene, TonemapOperator,
+    DebugDrawState, Renderer, RendererConfig, Scene, TonemapOperator,
 };
 use helio_default_graphs::build_default_graph;
 use helio_pass_postprocess::LutBuilder;

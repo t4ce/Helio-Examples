@@ -8,8 +8,7 @@
 //!   IJKL — keyboard look
 //!   Escape — release cursor / exit
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 use v3_demo_common::{
     box_mesh, insert_object, insert_object_with_movability, make_material, plane_mesh, point_light,
     sphere_mesh,
@@ -458,7 +457,7 @@ impl AppState {
         // Ground is group 0b0100 and only collides with group A.
         let g_ground = InteractionGroups::new(0b0100u32.into(), 0b0001u32.into());
 
-        let ball_mesh = sphere_mesh([0.0, 0.0, 0.0], 0.6);
+        let _ball_mesh = sphere_mesh([0.0, 0.0, 0.0], 0.6);
         for i in 0..64 {
             let x = (i % 8) as f32 * 2.0 - 7.0;
             let z = (i / 8) as f32 * 2.0 - 7.0;

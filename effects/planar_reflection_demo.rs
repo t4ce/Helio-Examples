@@ -9,8 +9,7 @@
 //   IJKL        — keyboard look
 //   Escape      — release cursor / quit
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use std::collections::HashSet;
 use std::sync::Arc;

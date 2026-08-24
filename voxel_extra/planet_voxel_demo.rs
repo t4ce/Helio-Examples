@@ -2263,5 +2263,4 @@ mod tests {
         assert!(keys.iter().all(|key| key.page.lod == 0));
     }
 }
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;

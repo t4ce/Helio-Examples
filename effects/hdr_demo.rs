@@ -10,8 +10,7 @@
 //!   H           — cycle HDR output mode
 //!   Escape      — release cursor / exit
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use helio::{
     required_experimental_features, required_wgpu_features, required_wgpu_limits, Camera,
@@ -439,7 +438,7 @@ impl ApplicationHandler for App {
                 let now = std::time::Instant::now();
                 let dt = (now - state.last_frame).as_secs_f32().min(0.05);
                 state.last_frame = now;
-                let time = state.start_time.elapsed().as_secs_f32();
+                let _time = state.start_time.elapsed().as_secs_f32();
 
                 let speed = 5.0;
                 let (sy, cy) = state.cam_yaw.sin_cos();

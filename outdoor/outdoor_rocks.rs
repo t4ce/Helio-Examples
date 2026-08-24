@@ -15,8 +15,7 @@
 //!   Escape      — release cursor / exit
 //!   F3          — toggle virtual geometry triangle debug view
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -679,7 +678,7 @@ impl ApplicationHandler for App {
                 let frame_start = Instant::now();
                 let now = frame_start;
                 let dt = now.duration_since(state.last_frame).as_secs_f32().min(0.05);
-                let t = now.duration_since(state.start_time).as_secs_f32();
+                let _t = now.duration_since(state.start_time).as_secs_f32();
                 state.last_frame = now;
 
                 // ── Sun rotation ──────────────────────────────────────────

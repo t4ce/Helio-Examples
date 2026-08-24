@@ -4,8 +4,7 @@
 //! position/orientation comes straight from OpenXR inside `render_xr`, so this
 //! controller is only consulted for the window mirror camera.
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use std::collections::HashSet;
 

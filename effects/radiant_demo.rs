@@ -4,8 +4,7 @@
 //   Tier 2 — Hand-authored surface templates (clear coat, SSS, anisotropic, skin)
 //   Tier 3 — Full custom template (iridescent thin-film surface)
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -17,7 +16,6 @@ use helio::{
     GpuMaterial, Renderer, RendererConfig, Scene, SceneActor,
 };
 use helio_default_graphs::build_default_graph;
-use helio_pass_gbuffer::GBufferPass;
 use libhelio::{
     FLAG_HAS_NORMAL_MAP, MATERIAL_CLASS_ANISOTROPIC, MATERIAL_CLASS_CLEAR_COAT,
     MATERIAL_CLASS_DEFAULT, MATERIAL_CLASS_SKIN, MATERIAL_CLASS_SUBSURFACE,
@@ -30,9 +28,6 @@ use winit::{
     keyboard::{KeyCode, PhysicalKey},
     window::{CursorGrabMode, Window, WindowId},
 };
-
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
 
 const LOOK_SENS: f32 = 0.002;
 const FLY_SPEED: f32 = 10.0;
@@ -138,7 +133,7 @@ impl ApplicationHandler for App {
 
         let mut config = RendererConfig::new(size.width, size.height, surface_format);
         config.enable_ssr = true;
-        let mut scene = Scene::new(device.clone(), queue.clone());
+        let scene = Scene::new(device.clone(), queue.clone());
         let debug_camera_buf = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Debug Camera Buffer"),
             size: std::mem::size_of::<helio::DebugCameraUniform>() as u64,
@@ -528,7 +523,7 @@ impl ApplicationHandler for App {
             [0.0; 3],
             0.0,
         ));
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             plane_mesh,
             plane_mat,
@@ -537,28 +532,28 @@ impl ApplicationHandler for App {
         );
 
         // ── Front row ──
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             sphere_mesh,
             gold_mat,
             Mat4::from_translation(Vec3::new(-s * 1.5, yp, front_z)),
             1.0,
         );
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             sphere_mesh,
             plastic_mat,
             Mat4::from_translation(Vec3::new(-s * 0.5, yp, front_z)),
             1.0,
         );
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             sphere_mesh,
             coat_mat,
             Mat4::from_translation(Vec3::new(s * 0.5, yp, front_z)),
             1.0,
         );
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             sphere_mesh,
             pulse_mat,
@@ -567,28 +562,28 @@ impl ApplicationHandler for App {
         );
 
         // ── Back row ──
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             sphere_mesh,
             crystal_mat,
             Mat4::from_translation(Vec3::new(-s * 2.0, yp, back_z)),
             1.0,
         );
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             sphere_mesh,
             aniso_mat,
             Mat4::from_translation(Vec3::new(-s * 1.0, yp, back_z)),
             1.0,
         );
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             sphere_mesh,
             skin_mat,
             Mat4::from_translation(Vec3::new(s * 0.0, yp, back_z)),
             1.0,
         );
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             sphere_mesh,
             aniso2_mat,
@@ -596,7 +591,7 @@ impl ApplicationHandler for App {
             1.0,
         );
         // Glass: transparent sphere with Fresnel reflections
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             sphere_mesh,
             glass_mat,
@@ -605,7 +600,7 @@ impl ApplicationHandler for App {
         );
 
         // Opal: milky body + iridescent play-of-colour
-        v3_demo_common::insert_object(
+        let _ = v3_demo_common::insert_object(
             &mut renderer,
             sphere_mesh,
             opal_mat,

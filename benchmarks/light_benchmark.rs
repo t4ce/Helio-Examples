@@ -8,8 +8,7 @@
 //!   +/-                  — increase/decrease light intensity
 //!   Escape               — release cursor / exit
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 use v3_demo_common::{box_mesh, insert_object, make_material, point_light};
 
 use helio::{

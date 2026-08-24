@@ -29,8 +29,7 @@
 
 mod input;
 mod scene;
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use std::sync::Arc;
 use std::time::Instant;

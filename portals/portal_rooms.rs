@@ -31,8 +31,7 @@
 //! base red face -> inner cube face -> inner destination room. The ordinary
 //! `portal_rooms` target remains the original, single-level scene.
 
-#[path = "../v3_demo_common.rs"]
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use self::v3_demo_common::{box_mesh, make_material, point_light, sphere_mesh};
 use helio::{
