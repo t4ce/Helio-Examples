@@ -10,7 +10,7 @@
 //!   --out-dir www/render_v2_basic --target web
 //! ```
 //!
-//! Or run the Examples web binary (`cargo run -p examples --bin web`) to build every demo at
+//! Or run the web tool (`cargo run -p helio-web-tools --bin web`) to build every demo at
 //! once — interactively (TUI) or headless (`--headless`, used by CI). It also
 //! writes the landing-page HTML and serves the result locally.
 

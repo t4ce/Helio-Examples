@@ -1,4 +1,4 @@
-//! `cargo run -p examples --bin web` — builds every WASM demo and serves them locally.
+//! `cargo run -p helio-web-tools --bin web` — builds every WASM demo and serves them locally.
 //!
 //! Two modes:
 //!   * **Interactive** (default, when stdout is a TTY): a fullscreen TUI shows
@@ -403,9 +403,45 @@ fn headless_requested() -> bool {
         || !std::io::stdout().is_terminal()
 }
 
+fn require_build_tools() {
+    let wasm_pack = Command::new("wasm-pack")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success());
+    if !wasm_pack {
+        eprintln!("Missing required tool: wasm-pack");
+        eprintln!("Install it with: cargo install wasm-pack");
+        std::process::exit(1);
+    }
+
+    let wasm_target = Command::new("rustup")
+        .args(["target", "list", "--installed"])
+        .output()
+        .ok()
+        .is_some_and(|output| {
+            output.status.success()
+                && String::from_utf8_lossy(&output.stdout)
+                    .lines()
+                    .any(|line| line.trim() == "wasm32-unknown-unknown")
+        });
+    if !wasm_target {
+        eprintln!("Missing Rust target: wasm32-unknown-unknown");
+        eprintln!("Install it with: rustup target add wasm32-unknown-unknown");
+        std::process::exit(1);
+    }
+}
+
 fn main() {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let tool_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let manifest_dir = tool_dir
+        .parent()
+        .expect("web-tools must live directly under Helio-Examples")
+        .to_path_buf();
     let out_base = manifest_dir.join("target/wasm-prebuilt");
+
+    require_build_tools();
 
     // Resolve a wasm-capable C compiler up front so a clear message can be
     // printed (and CI can fail fast) if none exists.

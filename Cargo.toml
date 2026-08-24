@@ -7,11 +7,7 @@ default-run = "helio_examples"
 
 [[bin]]
 name = "helio_examples"
-path = "helio_examples.rs"
-
-[[bin]]
-name = "web"
-path = "web.rs"
+path = "web-tools/src/hub.rs"
 
 [[bin]]
 name = "render_v2_basic"
@@ -306,7 +302,6 @@ helio-planet-voxel-core = { workspace = true }
 helio-default-graphs = { path = "../Helio/crates/helio-default-graphs" }
 helio-pass-water-sim = { path = "../Helio/crates/passes/3d/helio-pass-water-sim" }
 rapier3d = "0.24"
-rapier_testbed3d = "0.24"
 image = { workspace = true, features = ["png"] }
 bytemuck = { workspace = true }
 glam = { workspace = true }
@@ -315,12 +310,10 @@ env_logger = { workspace = true }
 log = { workspace = true }
 wgpu = { workspace = true }
 pollster = { workspace = true }
-microfont = "3.7.8"
-salva3d = { version = "0.9", features = ["dim3", "parry", "rapier"] }
-eframe = { version = "0.35", default-features = true }
-tiny_http = "0.12"
 ratatui = "0.29"
 crossterm = "0.28"
+microfont = "3.7.8"
+salva3d = { version = "0.9", features = ["dim3", "parry", "rapier"] }
 
 [[bin]]
 name = "sprite_demo"
