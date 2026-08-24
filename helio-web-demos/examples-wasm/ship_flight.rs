@@ -13,7 +13,8 @@ use crate::common::{
     cube_mesh, directional_light, insert_object, make_material, point_light, spot_light,
 };
 
-const EMBEDDED_BYTES: &[u8] = include_bytes!("../../../test.fbx");
+const EMBEDDED_BYTES: &[u8] =
+    include_bytes!("../../assets/heliov/kitkat/Assets/fbx/prototype.fbx");
 
 const LOOK_SENS: f32 = 0.0024;
 const ROLL_SPEED: f32 = 1.9;
@@ -83,9 +84,6 @@ struct ShipState {
 }
 
 impl ShipState {
-    fn forward(&self) -> Vec3 {
-        self.quat * -Vec3::Z
-    }
     fn render_forward(&self) -> Vec3 {
         self.render_quat * -Vec3::Z
     }
@@ -326,7 +324,7 @@ impl HelioWasmApp for Demo {
         let min_size = ship_radius * 0.1;
 
         let mut seed: u64 = 0xCAFE_BABE_1234_5678;
-        let mut spawn =
+        let spawn =
             |renderer: &mut Renderer, seed: &mut u64, i: usize, dist: f32, bias: f32| {
                 let theta = lcg(seed) * std::f32::consts::TAU;
                 let phi = rand_s(seed).asin();
@@ -552,5 +550,3 @@ impl HelioWasmApp for Demo {
         )
     }
 }
-
-

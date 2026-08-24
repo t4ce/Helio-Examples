@@ -15,7 +15,6 @@ pub struct Demo {
     grading_mode: u32,
     hue_shift: f32,
     lut_intensity: f32,
-    lut_size: u32,
     lut_generation: u32,
     lut_builder: Option<LutBuilder>,
 }
@@ -80,7 +79,6 @@ impl HelioWasmApp for Demo {
             grading_mode: 0,
             hue_shift: 0.0,
             lut_intensity: 1.0,
-            lut_size: 16,
             lut_generation: 1,
             lut_builder: Some(lut_builder),
         }

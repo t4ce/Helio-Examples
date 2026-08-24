@@ -9,7 +9,7 @@ use helio::{Camera, LightId, Renderer};
 use helio_wasm::{HelioWasmApp, InputState};
 
 use crate::common::{
-    box_mesh, cube_mesh, directional_light, insert_object, make_material, plane_mesh, point_light,
+    box_mesh, cube_mesh, insert_object, make_material, plane_mesh, point_light,
 };
 
 const LOOK_SENS: f32 = 0.0024;
@@ -280,5 +280,4 @@ impl HelioWasmApp for Demo {
         )
     }
 }
-
 

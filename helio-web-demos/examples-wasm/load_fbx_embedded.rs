@@ -14,7 +14,9 @@ use crate::common::{
     box_mesh, directional_light, insert_object, make_material, plane_mesh, spot_light,
 };
 
-const EMBEDDED_BYTES: &[u8] = include_bytes!("../../../test.fbx");
+const EMBEDDED_BYTES: &[u8] = include_bytes!(
+    "../../assets/heliov/kitkat/Assets/fbx/colored_block_red.fbx"
+);
 const LOOK_SENS: f32 = 0.002;
 
 pub struct Demo {
@@ -238,5 +240,4 @@ impl HelioWasmApp for Demo {
         )
     }
 }
-
 

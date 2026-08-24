@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use glam::Vec3;
-use helio::{Camera, Renderer, TonemapOperator};
+use helio::{Camera, Renderer};
 use helio_wasm::{HelioWasmApp, InputState, KeyCode};
 use crate::common::{make_material, plane_mesh, insert_object};
 

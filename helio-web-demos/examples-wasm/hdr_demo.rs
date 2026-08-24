@@ -84,7 +84,7 @@ impl HelioWasmApp for Demo {
         }
     }
 
-    fn update(&mut self, renderer: &mut Renderer, dt: f32,
+    fn update(&mut self, _renderer: &mut Renderer, dt: f32,
               _elapsed: f32, input: &InputState) -> Camera {
         self.cam_yaw += input.mouse_delta.0 * LOOK_SENS;
         self.cam_pitch = (self.cam_pitch - input.mouse_delta.1 * LOOK_SENS).clamp(-1.55, 1.55);

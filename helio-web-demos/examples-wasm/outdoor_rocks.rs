@@ -19,7 +19,8 @@ use helio_wasm::{HelioWasmApp, InputState};
 
 use crate::common::{cube_mesh, directional_light, insert_object, make_material, point_light};
 
-const SHIP_BYTES: &[u8] = include_bytes!("../../../test.fbx");
+const SHIP_BYTES: &[u8] =
+    include_bytes!("../../assets/heliov/kitkat/Assets/fbx/prototype.fbx");
 
 const ROCK_COUNT: usize = 90;
 const FIELD_RADIUS: f32 = 80.0;
@@ -249,5 +250,4 @@ impl HelioWasmApp for Demo {
         )
     }
 }
-
 

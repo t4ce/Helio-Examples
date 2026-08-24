@@ -3,19 +3,15 @@
 use std::sync::Arc;
 
 use glam::Vec3;
-use helio::{Camera, LightId, Renderer, SceneActorId};
+use helio::{Camera, LightId, Renderer};
 use helio_wasm::{HelioWasmApp, InputState};
 
-use crate::common::{box_mesh, cube_mesh, insert_object, make_material, plane_mesh, point_light};
+use crate::common::{cube_mesh, insert_object, make_material, plane_mesh, point_light};
 
 const LOOK_SENS: f32 = 0.0024;
 const FLY_SPEED: f32 = 5.0;
 
 pub struct Demo {
-    cube1: SceneActorId,
-    cube2: SceneActorId,
-    cube3: SceneActorId,
-    _ground: SceneActorId,
     light_p0: LightId,
 
     cam_pos: Vec3,
@@ -62,10 +58,6 @@ impl HelioWasmApp for Demo {
         renderer.scene_mut().insert_actor(helio::SceneActor::light(point_light([3.5, 1.5, 1.5], [1.0, 0.3, 0.5], 5.0, 6.0)));
 
         Self {
-            cube1,
-            cube2,
-            cube3,
-            _ground: ground,
             light_p0,
             cam_pos: Vec3::new(0.0, 2.5, 7.0),
             cam_yaw: 0.0,
@@ -123,5 +115,4 @@ impl HelioWasmApp for Demo {
         )
     }
 }
-
 
