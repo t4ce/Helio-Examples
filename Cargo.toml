@@ -10,6 +10,10 @@ name = "helio_examples"
 path = "helio_examples.rs"
 
 [[bin]]
+name = "web"
+path = "web.rs"
+
+[[bin]]
 name = "render_v2_basic"
 path = "basic/render_v2_basic.rs"
 
@@ -314,6 +318,9 @@ pollster = { workspace = true }
 microfont = "3.7.8"
 salva3d = { version = "0.9", features = ["dim3", "parry", "rapier"] }
 eframe = { version = "0.35", default-features = true }
+tiny_http = "0.12"
+ratatui = "0.29"
+crossterm = "0.28"
 
 [[bin]]
 name = "sprite_demo"

@@ -44,6 +44,22 @@ struct ExamplesHub {
 }
 
 impl ExamplesHub {
+    fn cargo_run(&mut self, bin: &str, args: &[&str]) {
+        let mut command = Command::new("cargo");
+        command
+            .args(["run", "--manifest-path"])
+            .arg(self.workspace.join("Cargo.toml"))
+            .args(["--bin", bin]);
+        if !args.is_empty() {
+            command.arg("--").args(args);
+        }
+
+        self.status = match command.spawn() {
+            Ok(_) => format!("Started {bin}"),
+            Err(error) => format!("Could not start {bin}: {error}"),
+        };
+    }
+
     fn launch(&mut self, bin: &str) {
         let executable = self.workspace.join("target").join("debug").join(bin);
         let result = if executable.is_file() {
@@ -90,18 +106,29 @@ impl eframe::App for ExamplesHub {
 
         ui.collapsing("Cloud Engine presets (bypass settings window)", |ui| {
             if ui.button("Launch Cloud Engine (default)").clicked() {
-                self.launch_with_args(
-                    "cloud_engine",
-                    &["--preset", "porcelain"],
-                );
+                self.launch_with_args("cloud_engine", &["--preset", "porcelain"]);
             }
             for &(label, preset) in CLOUD_PRESETS {
-                if ui.button(format!("Launch Cloud Engine — {label}")).clicked() {
-                    self.launch_with_args(
-                        "cloud_engine",
-                        &["--preset", preset],
-                    );
+                if ui
+                    .button(format!("Launch Cloud Engine — {label}"))
+                    .clicked()
+                {
+                    self.launch_with_args("cloud_engine", &["--preset", preset]);
                 }
+            }
+        });
+
+        ui.separator();
+
+        ui.collapsing("Build & utility actions", |ui| {
+            if ui.button("Build & serve all web demos").clicked() {
+                self.cargo_run("web", &[]);
+            }
+            if ui.button("Build web demos (headless)").clicked() {
+                self.cargo_run("web", &["--headless"]);
+            }
+            if ui.button("Bake simple cube artifact").clicked() {
+                self.launch("bake_simple_cube");
             }
         });
 
@@ -119,7 +146,7 @@ impl eframe::App for ExamplesHub {
 }
 
 fn main() -> eframe::Result {
-    let workspace = std::env::current_dir().expect("examples working directory");
+    let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
     eframe::run_native(
         "Helio Examples",
