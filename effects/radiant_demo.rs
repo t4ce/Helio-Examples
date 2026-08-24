@@ -650,15 +650,13 @@ impl ApplicationHandler for App {
             )));
 
         // Sun (orbits)
-        let sun_id = renderer
+        renderer
             .scene_mut()
             .insert_actor(SceneActor::light(v3_demo_common::directional_light(
                 [0.4, -0.8, 0.3],
                 [1.0, 0.9, 0.75],
                 2.0,
-            )))
-            .as_light()
-            .unwrap();
+            )));
 
         // ── Sky: nearly black — reflections visible only from lights ──────────
 

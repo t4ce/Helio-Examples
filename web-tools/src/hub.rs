@@ -90,8 +90,16 @@ impl eframe::App for Hub {
         ui.label("Choose a demo or build action.");
         ui.separator();
         eframe::egui::ScrollArea::vertical().show(ui, |ui| {
+            ui.set_min_width(ui.available_width());
             for entry in ENTRIES {
-                if ui.button(entry.label).clicked() {
+                let button = eframe::egui::Button::new(
+                    eframe::egui::RichText::new(entry.label)
+                        .color(eframe::egui::Color32::WHITE),
+                );
+                if ui
+                    .add_sized([ui.available_width(), 34.0], button)
+                    .clicked()
+                {
                     self.launch(entry);
                 }
             }

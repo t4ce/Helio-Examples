@@ -22,7 +22,7 @@ use examples as v3_demo_common;
 use helio::{
     required_experimental_features, required_wgpu_features, required_wgpu_limits, BakeConfig,
     Camera, DebugDrawState, HelioAction, HelioCommandBridge, LightId, MeshId, Movability,
-    PerfOverlayMode, Renderer, RendererConfig, Scene,
+    Renderer, RendererConfig, Scene,
 };
 use helio_default_graphs::{build_default_graph, build_fxaa_graph};
 use v3_demo_common::{box_mesh, make_material, plane_mesh, point_light};

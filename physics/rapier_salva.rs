@@ -555,7 +555,6 @@ impl ApplicationHandler for App {
             .unwrap();
 
         let particle_radius = 0.2;
-        let fluid_density = 1000.0;
 
         // Create shared physics state (direct access - no channels!)
         let physics_state = Arc::new(PhysicsSharedState::new());

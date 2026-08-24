@@ -126,9 +126,6 @@ enum Block {
     Stone,
     Ore,
     Sand,
-    Bricks,
-    Gravel,
-    Snow,
 }
 
 impl Block {
@@ -139,9 +136,6 @@ impl Block {
             Self::Stone => Some(2),
             Self::Ore => Some(3),
             Self::Sand => Some(4),
-            Self::Bricks => Some(5),
-            Self::Gravel => Some(6),
-            Self::Snow => Some(7),
             Self::Air => None,
         }
     }

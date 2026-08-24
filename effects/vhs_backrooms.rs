@@ -532,7 +532,7 @@ impl FlickerLight {
     /// matter (a full phase change, a toggle, or a blip).
     fn update(&mut self, scene: &mut Scene, dt: f32) {
         self.phase_timer -= dt;
-        let mut ratio = self.last_ratio;
+        let mut ratio;
         let mut force_apply = false;
 
         match self.phase {
