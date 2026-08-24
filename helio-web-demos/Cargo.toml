@@ -71,6 +71,10 @@ wasm-bindgen = { workspace = true }
 # Both v0.2 and v0.3 may appear in the dep graph (e.g. uuid uses 0.2, newer crates use 0.3).
 getrandom    = { version = "0.2", features = ["js"] }
 getrandom03  = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
+getrandom04  = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
+# uuid 1.25 requires its randomness source to be selected explicitly on
+# wasm32-unknown-unknown. Feature unification applies this to asset crates too.
+uuid         = { version = "1", features = ["rng-getrandom"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 env_logger = { workspace = true }
