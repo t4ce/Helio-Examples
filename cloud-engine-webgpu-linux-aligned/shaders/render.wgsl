@@ -30,6 +30,14 @@ struct VertexOutput {
 @group(0) @binding(0) var<uniform> params: RenderParams;
 @group(0) @binding(1) var cloud_volume: texture_3d<f32>;
 @group(0) @binding(2) var volume_sampler: sampler;
+// The regular Helio scene (cubes, voxels, lights) is rendered first. The cloud
+// ray marcher then uses it as its background, keeping those objects on Helio's
+// standard GPU-instanced path instead of duplicating a mesh renderer here.
+@group(0) @binding(3) var scene_color: texture_2d<f32>;
+@group(0) @binding(4) var scene_sampler: sampler;
+@group(0) @binding(5) var luna_texture: texture_2d<f32>;
+@group(0) @binding(6) var luna_sampler: sampler;
+@group(0) @binding(7) var moon2_texture: texture_2d<f32>;
 
 const PI: f32 = 3.141592653589793;
 const MAX_PRIMARY_STEPS: u32 = 112u;
@@ -213,6 +221,105 @@ fn sky_color(ray_direction: vec3<f32>, sun_direction: vec3<f32>) -> vec3<f32> {
   return realistic_sky_color(ray_direction, sun_direction);
 }
 
+fn rotate_2d(point: vec2<f32>, angle: f32) -> vec2<f32> {
+  let c = cos(angle);
+  let s = sin(angle);
+  return vec2<f32>(point.x * c - point.y * s, point.x * s + point.y * c);
+}
+
+// This is a sky sprite rather than a finite mesh: it is sampled from the view
+// ray, stays at infinity with Helio's sky, and therefore cannot parallax when
+// the flycam moves. The phase masks reuse one detailed alpha texture.
+fn luna_layer(
+  ray_direction: vec3<f32>,
+  center_direction: vec3<f32>,
+  angular_radius: f32,
+  rotation: f32,
+  tint: vec3<f32>
+) -> vec3<f32> {
+  let reference_axis = select(
+    vec3<f32>(0.0, 1.0, 0.0),
+    vec3<f32>(1.0, 0.0, 0.0),
+    abs(center_direction.y) > 0.92
+  );
+  let tangent = normalize(cross(reference_axis, center_direction));
+  let bitangent = normalize(cross(center_direction, tangent));
+  let local = vec2<f32>(dot(ray_direction, tangent), dot(ray_direction, bitangent))
+    / max(sin(angular_radius), 0.001);
+  let distance_from_center = length(local);
+  let facing = dot(ray_direction, center_direction) > 0.0;
+  let disc = select(0.0, 1.0 - smoothstep(0.985, 1.015, distance_from_center), facing);
+  let uv = rotate_2d(local, rotation) * 0.5 + vec2<f32>(0.5);
+  let source = textureSampleLevel(luna_texture, luna_sampler, uv, 0.0);
+
+  let alpha = source.a * disc;
+  let luminance = dot(source.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+  // Deliberate broad glow: it is tinted and fades outside the authored disc,
+  // unlike the former hard white rim from Helio's analytic sun.
+  let glow = select(
+    0.0,
+    (1.0 - smoothstep(1.0, 1.42, distance_from_center)) * 0.085,
+    facing
+  );
+  return tint * (luminance * alpha + glow);
+}
+
+fn moon2_layer(
+  ray_direction: vec3<f32>,
+  center_direction: vec3<f32>,
+  angular_radius: f32,
+  rotation: f32,
+  tint: vec3<f32>
+) -> vec3<f32> {
+  let reference_axis = select(
+    vec3<f32>(0.0, 1.0, 0.0),
+    vec3<f32>(1.0, 0.0, 0.0),
+    abs(center_direction.y) > 0.92
+  );
+  let tangent = normalize(cross(reference_axis, center_direction));
+  let bitangent = normalize(cross(center_direction, tangent));
+  let local = vec2<f32>(dot(ray_direction, tangent), dot(ray_direction, bitangent))
+    / max(sin(angular_radius), 0.001);
+  let distance_from_center = length(local);
+  let facing = dot(ray_direction, center_direction) > 0.0;
+  let disc = select(0.0, 1.0 - smoothstep(0.985, 1.015, distance_from_center), facing);
+  let uv = rotate_2d(local, rotation) * 0.5 + vec2<f32>(0.5);
+  let source = textureSampleLevel(moon2_texture, luna_sampler, uv, 0.0);
+  let glow = select(
+    0.0,
+    (1.0 - smoothstep(1.0, 1.42, distance_from_center)) * 0.085,
+    facing
+  );
+  return tint * (source.r * source.a * disc + glow);
+}
+
+fn multi_luna_sky(ray_direction: vec3<f32>) -> vec3<f32> {
+  // An equilateral sky triangle: three anchors at one shared elevation and
+  // 120-degree azimuth intervals around the complete world horizon.
+  let full = luna_layer(
+    ray_direction, normalize(vec3<f32>(0.0, 0.45, 0.893)), 0.050, 0.025,
+    vec3<f32>(1.00, 0.96, 0.88)
+  );
+  let moon2 = moon2_layer(
+    ray_direction, normalize(vec3<f32>(0.774, 0.45, -0.447)), 0.100, -0.18,
+    vec3<f32>(0.60, 0.78, 1.00)
+  );
+  let companion = luna_layer(
+    ray_direction, normalize(vec3<f32>(-0.774, 0.45, -0.447)), 0.200, 0.27,
+    vec3<f32>(1.00, 0.55, 0.30)
+  );
+  return full + moon2 + companion;
+}
+
+// Exact sky-colour portion of the original artistic Cloud Engine path. The
+// old procedural moon that followed it is intentionally omitted because the
+// textured multi-moon layer below now owns celestial rendering.
+fn original_artistic_sky_color(ray_direction: vec3<f32>) -> vec3<f32> {
+  let vertical = clamp(ray_direction.y * 0.5 + 0.5, 0.0, 1.0);
+  let side_falloff = 0.86 + 0.14 * pow(max(1.0 - abs(ray_direction.x), 0.0), 2.0);
+  return params.art_sky_color.rgb * mix(0.62, 1.18, vertical) * side_falloff;
+}
+
 fn aces_tonemap(color: vec3<f32>) -> vec3<f32> {
   let a = 2.51;
   let b = 0.03;
@@ -239,14 +346,17 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
   );
 
   let sun_direction = normalize(params.sun_direction_intensity.xyz);
-  var background = sky_color(ray_direction, sun_direction);
-  if (params.art_style.x > 0.5) {
-    let star_cell = floor(input.position.xy / 3.0);
-    let star_hash = hash12(star_cell + vec2<f32>(params.sky_horizon_seed.w));
-    let star = smoothstep(0.9965, 0.9995, star_hash)
-      * smoothstep(-0.12, 0.38, ray_direction.y);
-    background = background + params.art_moon_color.rgb * star * 0.19;
-  }
+  // Fullscreen clip-space +Y is the top of this viewport, while texture V=0
+  // is the top row of Helio's offscreen target. Flip V before sampling so the
+  // scene camera and the cloud ray camera share the same world orientation.
+  let scene_uv = vec2<f32>(input.uv.x, 1.0 - input.uv.y);
+  // The regular scene target contains the cubes and axes but clears to black.
+  // Fill only that empty background with our controlled blue gradient, leaving
+  // no hidden Helio sun disc behind the authored moon textures.
+  let scene_sample = textureSampleLevel(scene_color, scene_sampler, scene_uv, 0.0).rgb;
+  let scene_presence = smoothstep(0.012, 0.075, max(max(scene_sample.r, scene_sample.g), scene_sample.b));
+  let background = mix(original_artistic_sky_color(ray_direction), scene_sample, scene_presence)
+    + multi_luna_sky(ray_direction);
 
   let hit = intersect_box(ray_origin, ray_direction, params.bounds_min_density.xyz, params.bounds_max_shadow.xyz);
   let near_distance = max(hit.x, 0.0);
