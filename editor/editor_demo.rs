@@ -1143,8 +1143,8 @@ impl AppState {
         let (sp, cp) = self.cam_pitch.sin_cos();
         let fwd = glam::Vec3::new(sy * cp, sp, -cy * cp);
         let aspect = width / height.max(1.0);
-        let proj = glam::Mat4::perspective_rh(std::f32::consts::FRAC_PI_4, aspect, 0.1, 800.0);
-        let view = glam::Mat4::look_at_rh(self.cam_pos, self.cam_pos + fwd, glam::Vec3::Y);
+        let proj = glam::camera::rh::proj::directx::perspective(std::f32::consts::FRAC_PI_4, aspect, 0.1, 800.0);
+        let view = glam::camera::rh::view::look_at_mat4(self.cam_pos, self.cam_pos + fwd, glam::Vec3::Y);
         let vp_inv = (proj * view).inverse();
         EditorState::ray_from_screen(self.cursor_pos.0, self.cursor_pos.1, width, height, vp_inv)
     }

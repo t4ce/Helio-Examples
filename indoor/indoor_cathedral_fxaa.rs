@@ -138,7 +138,6 @@ struct AppState {
 
     // Debug
     debug_mode: u32,
-    perf_overlay_mode: PerfOverlayMode,
     debug_overlay_enabled: bool,
 
     // Scene state
@@ -771,7 +770,6 @@ impl ApplicationHandler for App {
             cursor_grabbed: false,
             mouse_delta: (0.0, 0.0),
             debug_mode: 0,
-            perf_overlay_mode: PerfOverlayMode::Disabled,
             debug_overlay_enabled: false,
             chandelier_light_ids,
             candle_light_ids,

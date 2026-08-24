@@ -52,7 +52,6 @@ struct AppState {
     surface_format: wgpu::TextureFormat,
     renderer: Renderer,
     last_frame: std::time::Instant,
-    start_time: std::time::Instant,
 
     cam_pos: glam::Vec3,
     cam_yaw: f32,
@@ -328,7 +327,6 @@ impl ApplicationHandler for App {
             surface_format,
             renderer,
             last_frame: std::time::Instant::now(),
-            start_time: std::time::Instant::now(),
             cam_pos: glam::Vec3::new(0.0, 3.0, 6.0),
             cam_yaw: 0.0,
             cam_pitch: -0.3,

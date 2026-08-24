@@ -14,7 +14,7 @@
 //! once — interactively (egui) or headless (`--headless`, used by CI). It also
 //! writes the landing-page HTML and serves the result locally.
 
-mod common;
+pub mod common;
 
 // The published site's HTML (per-demo landing pages + master index) is written
 // by the `web` binary's builder (src/bin/web.rs), which is the single source of

@@ -496,7 +496,7 @@ fn create_case_buffers(
     let identity = Mat4::IDENTITY.to_cols_array();
     let camera = GpuCameraUniforms::new(
         Mat4::IDENTITY,
-        Mat4::perspective_rh(60.0_f32.to_radians(), 16.0 / 9.0, 0.1, 1000.0),
+        glam::camera::rh::proj::directx::perspective(60.0_f32.to_radians(), 16.0 / 9.0, 0.1, 1000.0),
         Vec3::ZERO,
         0.1,
         1000.0,

@@ -6,6 +6,8 @@ use helio::{
 use std::collections::HashSet;
 use winit::keyboard::KeyCode;
 
+pub mod churn_scene;
+
 /// Apply the shared desktop keyboard-look convention used by the Linux flycam.
 /// I/K pitch, J/L yaw; mouse look remains additive in each demo.
 pub fn apply_keyboard_look(

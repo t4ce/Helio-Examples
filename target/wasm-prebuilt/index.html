@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Helio — Web Demos</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: #0a0a0c; color: #ccc; font-family: system-ui, sans-serif; }
+    body { max-width: 960px; margin: 0 auto; padding: 48px 20px; }
+    h1 { font-size: 28px; font-weight: 700; color: #eee; margin-bottom: 6px; }
+    .subtitle { color: #555; font-size: 14px; margin-bottom: 40px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .card { display: flex; flex-direction: column; gap: 6px; background: #111; border: 1px solid #1e1e22; border-radius: 8px; padding: 18px 20px; text-decoration: none; color: inherit; transition: border-color 0.15s, background 0.15s; }
+    .card:hover { background: #161618; border-color: #3a3a44; }
+    .card-title { font-size: 15px; font-weight: 600; color: #ddd; }
+    .card-desc  { font-size: 12px; color: #666; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <h1>Helio Web Demos</h1>
+  <p class="subtitle">Real-time rendering demos compiled to WebAssembly.</p>
+  <div class="grid">
+    <a class="card" href="render_v2_basic/">
+      <div class="card-title">Basic Render</div>
+      <div class="card-desc">Three lit cubes — the minimal Helio render pipeline.</div>
+    </a>
+    <a class="card" href="render_v2_sky/">
+      <div class="card-title">Volumetric Sky</div>
+      <div class="card-desc">Real-time atmospheric scattering with a moving sun.</div>
+    </a>
+    <a class="card" href="debug_shapes/">
+      <div class="card-title">Debug Shapes</div>
+      <div class="card-desc">Animated immediate-mode debug primitives — lines, sphere, torus, cone, frustum.</div>
+    </a>
+    <a class="card" href="indoor_room/">
+      <div class="card-title">Indoor Room</div>
+      <div class="card-desc">Furnished room with a flickering point light.</div>
+    </a>
+    <a class="card" href="indoor_corridor/">
+      <div class="card-title">Indoor Corridor</div>
+      <div class="card-desc">40 m corridor with overhead fluorescent lighting.</div>
+    </a>
+    <a class="card" href="outdoor_night/">
+      <div class="card-title">Outdoor Night</div>
+      <div class="card-desc">City block under streetlamps at night.</div>
+    </a>
+    <a class="card" href="outdoor_canyon/">
+      <div class="card-title">Outdoor Canyon</div>
+      <div class="card-desc">Desert canyon with a campfire and a dynamic sky.</div>
+    </a>
+    <a class="card" href="indoor_cathedral/">
+      <div class="card-title">Indoor Cathedral</div>
+      <div class="card-desc">Gothic nave lit by candles and flickering torch sconces.</div>
+    </a>
+    <a class="card" href="indoor_server_room/">
+      <div class="card-title">Indoor Server Room</div>
+      <div class="card-desc">Datacenter server racks with animated LED indicators.</div>
+    </a>
+    <a class="card" href="outdoor_city/">
+      <div class="card-title">Outdoor City</div>
+      <div class="card-desc">Procedural night city with street lamps and rooftop beacons.</div>
+    </a>
+    <a class="card" href="outdoor_volcano/">
+      <div class="card-title">Outdoor Volcano</div>
+      <div class="card-desc">Active lava field with pulsing vent glow.</div>
+    </a>
+    <a class="card" href="space_station/">
+      <div class="card-title">Space Station</div>
+      <div class="card-desc">Orbiting station with solar arrays and navigation lights.</div>
+    </a>
+    <a class="card" href="light_benchmark/">
+      <div class="card-title">Light Benchmark</div>
+      <div class="card-desc">128 animated point lights — deferred lighting stress test.</div>
+    </a>
+    <a class="card" href="hlfs_benchmark/">
+      <div class="card-title">HLFS Compute Lighting</div>
+      <div class="card-desc">Hierarchical light-field compute injection and propagation.</div>
+    </a>
+    <a class="card" href="sdf_demo/">
+      <div class="card-title">SDF Demo</div>
+      <div class="card-desc">Signed-distance field clipmap with live sphere edits.</div>
+    </a>
+    <a class="card" href="rc_benchmark/">
+      <div class="card-title">Radiance Cascades</div>
+      <div class="card-desc">Cornell box global illumination benchmark.</div>
+    </a>
+    <a class="card" href="load_fbx/">
+      <div class="card-title">Load FBX</div>
+      <div class="card-desc">FBX asset loading (placeholder scene on WASM).</div>
+    </a>
+    <a class="card" href="load_fbx_embedded/">
+      <div class="card-title">Load FBX (Embedded)</div>
+      <div class="card-desc">FBX loaded from bytes embedded at compile time.</div>
+    </a>
+    <a class="card" href="ship_flight/">
+      <div class="card-title">Ship Flight</div>
+      <div class="card-desc">6-DoF spaceship through an asteroid field.</div>
+    </a>
+    <a class="card" href="simple_graph/">
+      <div class="card-title">Simple Graph</div>
+      <div class="card-desc">Minimal fly-camera around a lit unit cube.</div>
+    </a>
+    <a class="card" href="outdoor_rocks/">
+      <div class="card-title">Outdoor Rocks</div>
+      <div class="card-desc">Scattered rocks with an embedded FBX ship and dynamic sun.</div>
+    </a>
+    <a class="card" href="editor_demo/">
+      <div class="card-title">Editor Demo</div>
+      <div class="card-desc">BVH ray-picking and transform gizmo (translate / rotate / scale).</div>
+    </a>
+    <a class="card" href="voxel_mesh_demo/">
+      <div class="card-title">Voxel Mesh Demo</div>
+      <div class="card-desc">Procedural voxel world mesh-rendered through a custom VoxelMeshPass + FXAA graph.</div>
+    </a>
+    <a class="card" href="vhs_backrooms/">
+      <div class="card-title">VHS Backrooms</div>
+      <div class="card-desc">Procedural backrooms maze with an injected VHS camcorder post-process shader.</div>
+    </a>
+  </div>
+</body>
+</html>

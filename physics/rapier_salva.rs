@@ -154,7 +154,6 @@ struct AppState {
     physics_state: Arc<PhysicsSharedState>,
 
     particle_radius: f32,
-    fluid_density: f32,
 
     fluid_particles: Vec<FluidParticle>,
     pending_spawn_count: usize,
@@ -715,7 +714,6 @@ impl ApplicationHandler for App {
             physics_enabled: true,
             physics_state,
             particle_radius,
-            fluid_density,
             fluid_particles: Vec::new(),
             pending_spawn_count: 0,
             water_material,

@@ -50,7 +50,6 @@ struct AppState {
     window: Arc<Window>,
     surface: wgpu::Surface<'static>,
     device: Arc<wgpu::Device>,
-    queue: Arc<wgpu::Queue>,
     surface_format: wgpu::TextureFormat,
     alpha_mode: wgpu::CompositeAlphaMode,
     renderer: Renderer,
@@ -65,7 +64,6 @@ struct AppState {
     animated_iri_id: helio::MaterialId,
     crystal_mat_id: helio::MaterialId,
     aniso_mat_id: helio::MaterialId,
-    sun_light_id: helio::LightId,
     key_light_id: helio::LightId,
 }
 
@@ -615,7 +613,8 @@ impl ApplicationHandler for App {
             water_mat,
             Mat4::from_translation(Vec3::new(s * 3.5, yp - 0.3, back_z - 0.5)),
             1.2,
-        );
+        )
+        .expect("insert water object");
 
         // ── Lights ───────────────────────────────────────────────────────────
 
@@ -691,7 +690,6 @@ impl ApplicationHandler for App {
             window,
             surface,
             device,
-            queue,
             surface_format,
             alpha_mode,
             renderer,
@@ -706,7 +704,6 @@ impl ApplicationHandler for App {
             animated_iri_id: anim_iri_mat,
             crystal_mat_id: crystal_mat,
             aniso_mat_id: aniso2_mat,
-            sun_light_id: sun_id,
             key_light_id: key_id,
         });
     }

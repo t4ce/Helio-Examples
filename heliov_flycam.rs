@@ -14,7 +14,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-mod v3_demo_common;
+use examples as v3_demo_common;
 
 use glam::{Mat4, Vec2, Vec3};
 use helio::{
@@ -73,7 +73,6 @@ const VOXEL_DRAW_MATERIALS: usize = VOXEL_BLOCK_MATERIALS * VOXEL_FACE_SLOTS;
 // material transform selects an atlas tile.
 const VOXEL_ATLAS_REPEAT_UV: u32 = 0x8000_0000;
 const VOXEL_BEVEL_RADIUS: f32 = 0.018;
-const VOXEL_BEVEL_SEGMENTS: usize = 3;
 const ACTIVE_VOXEL_BEVEL_SEGMENTS: usize = 0;
 const CHUNK_LOOK_AHEAD: f32 = CHUNK_WORLD_SIZE * 0.75;
 const PORTAL_HALF_EXTENT: Vec2 = Vec2::new(2.2, 3.2);
@@ -3161,7 +3160,7 @@ mod tests {
                 }
             }
         }
-        let meshes = world.meshes(VOXEL_BEVEL_SEGMENTS);
+        let meshes = world.meshes(3);
         // All eight cells touch the surface, but their six internal center
         // faces are absent. Every emitted primitive is an indexed triangle.
         let triangle_count = meshes
@@ -3176,7 +3175,7 @@ mod tests {
     fn isolated_three_band_bevel_has_expected_topology() {
         let mut world = VoxelWorld::empty();
         world.set(1, 1, 1, Block::Grass);
-        let meshes = world.meshes(VOXEL_BEVEL_SEGMENTS);
+        let meshes = world.meshes(3);
         // 6 center quads (12), 12 * 3 edge quads (72), and eight
         // three-arc corner fans (8 * 9 = 72).
         assert_eq!(
@@ -3219,7 +3218,7 @@ mod tests {
         let mut world = VoxelWorld::empty();
         world.set(1, 1, 1, Block::Grass);
         world.set(2, 1, 1, Block::Grass);
-        let meshes = world.meshes(VOXEL_BEVEL_SEGMENTS);
+        let meshes = world.meshes(3);
         let triangle_count = meshes
             .iter()
             .map(|mesh| mesh.indices.len() / 3)

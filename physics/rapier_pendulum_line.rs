@@ -456,7 +456,6 @@ impl AppState {
         let seg_length = 1.0;
 
         let mut parent_handle = pivot_handle;
-        let mut last_body_handle = pivot_handle;
 
         for i in 0..chain_length {
             // Start horizontal at height 18.0 and extend along +X, so gravity will swing the chain.
@@ -509,7 +508,6 @@ impl AppState {
                 collider_handle,
             });
             parent_handle = body_handle;
-            last_body_handle = body_handle;
         }
 
         let ground_body = RigidBodyBuilder::fixed()

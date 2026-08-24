@@ -8,8 +8,7 @@
 //!   C                    — toggle object-object collisions on/off
 //!   Escape               — release cursor / exit
 
-#[path = "../churn_scene.rs"]
-mod churn_scene;
+use examples::churn_scene;
 use examples as v3_demo_common;
 use v3_demo_common::{
     box_mesh, insert_object, insert_object_with_movability, make_material, plane_mesh, point_light,
@@ -42,8 +41,6 @@ struct SpawnedObject {
     seed: f32,
     speed: f32,
     scale: f32,
-    mesh: MeshId,
-    material: MaterialId,
     body_handle: RigidBodyHandle,
     collider_handle: ColliderHandle,
 }
@@ -573,8 +570,6 @@ impl AppState {
                         .rng
                         .next_f32(churn_scene::SPEED_RANGE[0], churn_scene::SPEED_RANGE[1]),
                     scale,
-                    mesh,
-                    material,
                     body_handle,
                     collider_handle,
                 });

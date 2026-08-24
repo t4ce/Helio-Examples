@@ -47,7 +47,6 @@ const SHIP_BYTES: &[u8] = include_bytes!("../assets/models/test.fbx");
 // ── Rock scatter parameters ───────────────────────────────────────────────────
 const ROCK_COUNT_PER_TYPE: usize = 30;
 const FIELD_RADIUS: f32 = 80.0;
-const BILLBOARD_EVERY_N: usize = 4; // place a billboard above every Nth rock
 
 fn base_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -65,16 +64,6 @@ fn lcg(seed: &mut u64) -> f32 {
 fn rand_s(seed: &mut u64) -> f32 {
     lcg(seed) * 2.0 - 1.0
 }
-
-// ── Marker color palette (RGBA, linear) ──────────────────────────────────────
-const MARKER_COLORS: [[f32; 4]; 6] = [
-    [1.0, 0.8, 0.1, 0.85], // amber
-    [0.2, 0.8, 1.0, 0.85], // cyan
-    [1.0, 0.3, 0.3, 0.85], // red
-    [0.4, 1.0, 0.4, 0.85], // green
-    [0.9, 0.4, 1.0, 0.85], // violet
-    [1.0, 1.0, 1.0, 0.85], // white
-];
 
 // ─────────────────────────────────────────────────────────────────────────────
 

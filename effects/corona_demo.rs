@@ -58,7 +58,6 @@ struct AppState {
     cursor_grabbed: bool,
     mouse_delta: (f32, f32),
     // emitter descriptors (CPU-side, rebuilt each frame with position/rotation)
-    emitters: [libhelio::GpuCoronaEmitter; 5],
 }
 
 impl App {
@@ -348,7 +347,6 @@ impl ApplicationHandler for App {
             keys: HashSet::new(),
             cursor_grabbed: false,
             mouse_delta: (0.0, 0.0),
-            emitters,
         });
     }
 

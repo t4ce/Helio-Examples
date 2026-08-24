@@ -307,10 +307,10 @@ impl HelioWasmApp for Demo {
 
         if !input.cursor_grabbed {
             let aspect  = self.width  as f32 / self.height.max(1) as f32;
-            let proj    = glam::Mat4::perspective_rh(
+            let proj    = glam::camera::rh::proj::directx::perspective(
                 std::f32::consts::FRAC_PI_4, aspect, 0.1, 500.0,
             );
-            let view    = glam::Mat4::look_at_rh(
+            let view    = glam::camera::rh::view::look_at_mat4(
                 self.cam_pos, self.cam_pos + fwd, glam::Vec3::Y,
             );
             let vp_inv  = (proj * view).inverse();
