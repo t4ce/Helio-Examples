@@ -1682,6 +1682,7 @@ struct ChunkInstance {
 struct TowerBlock {
     object: ObjectId,
     body: RigidBodyHandle,
+    spawn_position: Vec3,
     visual_scale: Vec3,
 }
 
@@ -1950,12 +1951,22 @@ struct BlockShowcase {
     terrain_flower_material: MaterialId,
 }
 
-/// Place a single coarse, physical cobblestone tower in the middle of the four
-/// portal frames.  Its one scene object and one collider keep the demo's
-/// dynamic geometry path intentionally inexpensive.
+/// Build a permanent cobblestone pedestal up to the portal frames, with a
+/// deliberately uneven stack of only ten movable cubes on its top.
 fn add_portal_cobblestone_tower(state: &mut AppState, cobblestone_material: MaterialId) {
     const TOWER_WIDTH: i32 = 3;
-    const TOWER_HEIGHT: i32 = 32; // twice the original 16-layer Rapier stack
+    const MOVABLE_CUBES: [(f32, f32); 10] = [
+        (0.0, 0.0),
+        (-0.18, 0.14),
+        (0.21, -0.10),
+        (-0.26, -0.18),
+        (0.12, 0.25),
+        (-0.34, 0.04),
+        (0.30, -0.23),
+        (-0.08, 0.32),
+        (0.37, 0.11),
+        (-0.24, -0.31),
+    ];
     let center_x = 32i32;
     let center_z = 32i32;
     let local_x = (center_x + WORLD_SIDE / 2).rem_euclid(WORLD_SIDE);
@@ -1965,56 +1976,101 @@ fn add_portal_cobblestone_tower(state: &mut AppState, cobblestone_material: Mate
         .find(|&y| state.world.get(local_x, y, local_z) != Block::Air)
         .map(|y| y - WORLD_HEIGHT / 2 + 1)
         .expect("generated voxel terrain has a ground surface");
-
-    let visual_scale = Vec3::new(TOWER_WIDTH as f32, TOWER_HEIGHT as f32, TOWER_WIDTH as f32);
-    let position = Vec3::new(
-        center_x as f32,
-        ground_y as f32 + visual_scale.y * 0.5,
-        center_z as f32,
+    let pedestal_height =
+        ((PORTAL_CENTER_Y + PORTAL_HALF_EXTENT.y) - ground_y as f32).ceil() as i32;
+    let pedestal_center = Vec3::new(
+        center_x as f32 + 0.5,
+        ground_y as f32 + pedestal_height as f32 * 0.5,
+        center_z as f32 + 0.5,
     );
-    let object = state
-        .renderer
-        .scene_mut()
-        .insert_object(ObjectDescriptor {
-            mesh: state.build_cube_mesh,
-            material: cobblestone_material,
-            transform: Mat4::from_translation(position) * Mat4::from_scale(visual_scale),
-            bounds: [position.x, position.y, position.z, 16.3],
-            flags: 0b11,
-            groups: GroupMask::NONE,
-            movability: Some(helio::Movability::Movable),
-            user_tag: u64::MAX - 3,
-        })
-        .expect("insert movable portal cobblestone tower");
-    let body = state.physics_bodies.insert(
-        RigidBodyBuilder::dynamic()
-            .translation(Vector::new(position.x, position.y, position.z))
-            .linear_damping(0.25)
-            .angular_damping(0.35)
+
+    for y in 0..pedestal_height {
+        for z in 0..TOWER_WIDTH {
+            for x in 0..TOWER_WIDTH {
+                let position = Vec3::new(
+                    (center_x + x - TOWER_WIDTH / 2) as f32 + 0.5,
+                    (ground_y + y) as f32 + 0.5,
+                    (center_z + z - TOWER_WIDTH / 2) as f32 + 0.5,
+                );
+                state
+                    .renderer
+                    .scene_mut()
+                    .insert_object(ObjectDescriptor {
+                        mesh: state.build_cube_mesh,
+                        material: cobblestone_material,
+                        transform: Mat4::from_translation(position),
+                        bounds: [position.x, position.y, position.z, 0.87],
+                        flags: 0b11,
+                        groups: GroupMask::NONE,
+                        movability: None,
+                        user_tag: u64::MAX - 3,
+                    })
+                    .expect("insert static portal cobblestone pedestal");
+            }
+        }
+    }
+    let pedestal = state.physics_bodies.insert(
+        RigidBodyBuilder::fixed()
+            .translation(Vector::new(
+                pedestal_center.x,
+                pedestal_center.y,
+                pedestal_center.z,
+            ))
             .build(),
     );
     state.physics_colliders.insert_with_parent(
         ColliderBuilder::cuboid(
-            visual_scale.x * 0.5,
-            visual_scale.y * 0.5,
-            visual_scale.z * 0.5,
+            TOWER_WIDTH as f32 * 0.5,
+            pedestal_height as f32 * 0.5,
+            TOWER_WIDTH as f32 * 0.5,
         )
-        .friction(0.85)
-        .restitution(0.04)
+        .friction(0.9)
         .build(),
-        body,
+        pedestal,
         &mut state.physics_bodies,
     );
-    state.tower_blocks.push(TowerBlock {
-        object,
-        body,
-        visual_scale,
-    });
-    state
-        .physics_bodies
-        .get_mut(body)
-        .expect("fresh tower body")
-        .apply_impulse(Vector::new(80.0, 0.0, 24.0), true);
+    for (index, (offset_x, offset_z)) in MOVABLE_CUBES.into_iter().enumerate() {
+        let position = Vec3::new(
+            pedestal_center.x + offset_x,
+            ground_y as f32 + pedestal_height as f32 + index as f32 * 0.92 + 0.5,
+            pedestal_center.z + offset_z,
+        );
+        let object = state
+            .renderer
+            .scene_mut()
+            .insert_object(ObjectDescriptor {
+                mesh: state.build_cube_mesh,
+                material: cobblestone_material,
+                transform: Mat4::from_translation(position),
+                bounds: [position.x, position.y, position.z, 0.87],
+                flags: 0b11,
+                groups: GroupMask::NONE,
+                movability: Some(helio::Movability::Movable),
+                user_tag: u64::MAX - 4,
+            })
+            .expect("insert movable cobblestone stack cube");
+        let body = state.physics_bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .translation(Vector::new(position.x, position.y, position.z))
+                .linear_damping(0.15)
+                .angular_damping(0.2)
+                .build(),
+        );
+        state.physics_colliders.insert_with_parent(
+            ColliderBuilder::cuboid(0.5, 0.5, 0.5)
+                .friction(0.85)
+                .restitution(0.04)
+                .build(),
+            body,
+            &mut state.physics_bodies,
+        );
+        state.tower_blocks.push(TowerBlock {
+            object,
+            body,
+            spawn_position: position,
+            visual_scale: Vec3::ONE,
+        });
+    }
     let ground = state.physics_bodies.insert(
         RigidBodyBuilder::fixed()
             .translation(Vector::new(
@@ -2030,9 +2086,8 @@ fn add_portal_cobblestone_tower(state: &mut AppState, cobblestone_material: Mate
         &mut state.physics_bodies,
     );
     log::info!(
-        "HelioV portal landmark: one dynamic {}x{} cobblestone tower at ({center_x}, {ground_y}, {center_z})",
-        TOWER_WIDTH,
-        TOWER_HEIGHT
+        "HelioV portal landmark: static {}x{} pedestal plus {} movable cobblestone cubes at ({center_x}, {ground_y}, {center_z})",
+        TOWER_WIDTH, pedestal_height, MOVABLE_CUBES.len()
     );
 }
 
@@ -2718,8 +2773,9 @@ impl ApplicationHandler for App {
             last_frame: Instant::now(),
             camera: FlyCamera::new(
                 Vec3::new(0.0, 30.0, 45.0),
-                0.0,
-                -0.5,
+                // Aim at the top of the central cobblestone pedestal on boot.
+                1.204,
+                0.231,
                 FlyCameraConfig::default(),
             ),
             input: WinitFlyInput::new(),
@@ -2751,6 +2807,16 @@ impl ApplicationHandler for App {
                     event_loop.exit();
                 }
             }
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        state: ElementState::Pressed,
+                        physical_key: PhysicalKey::Code(KeyCode::KeyC),
+                        repeat: false,
+                        ..
+                    },
+                ..
+            } => reset_tower_stack(state),
             WindowEvent::KeyboardInput {
                 event:
                     KeyEvent {
@@ -2930,6 +2996,53 @@ fn render(state: &mut AppState) {
     state.queue.present(output);
 }
 
+fn reset_tower_stack(state: &mut AppState) {
+    for block in &state.tower_blocks {
+        let Some(body) = state.physics_bodies.get_mut(block.body) else {
+            continue;
+        };
+        body.set_position(
+            Isometry::translation(
+                block.spawn_position.x,
+                block.spawn_position.y,
+                block.spawn_position.z,
+            ),
+            true,
+        );
+        body.set_linvel(Vector::zeros(), true);
+        body.set_angvel(Vector::zeros(), true);
+    }
+    sync_tower_visuals(state);
+}
+
+fn sync_tower_visuals(state: &mut AppState) {
+    let transforms: Vec<_> = state
+        .tower_blocks
+        .iter()
+        .filter_map(|block| {
+            let body = state.physics_bodies.get(block.body)?;
+            let pose = body.position();
+            let transform = Mat4::from_translation(Vec3::new(
+                pose.translation.x,
+                pose.translation.y,
+                pose.translation.z,
+            )) * Mat4::from_quat(glam::Quat::from_xyzw(
+                pose.rotation.i,
+                pose.rotation.j,
+                pose.rotation.k,
+                pose.rotation.w,
+            )) * Mat4::from_scale(block.visual_scale);
+            Some((block.object, transform))
+        })
+        .collect();
+    for (object, transform) in transforms {
+        let _ = state
+            .renderer
+            .scene_mut()
+            .update_object_transform(object, transform);
+    }
+}
+
 fn step_tower_physics(state: &mut AppState, dt: f32) {
     state.physics_integration.dt = dt;
     state.physics_pipeline.step(
@@ -2947,26 +3060,7 @@ fn step_tower_physics(state: &mut AppState, dt: f32) {
         &(),
         &(),
     );
-    for block in &state.tower_blocks {
-        let Some(body) = state.physics_bodies.get(block.body) else {
-            continue;
-        };
-        let pose = body.position();
-        let transform = Mat4::from_translation(Vec3::new(
-            pose.translation.x,
-            pose.translation.y,
-            pose.translation.z,
-        )) * Mat4::from_quat(glam::Quat::from_xyzw(
-            pose.rotation.i,
-            pose.rotation.j,
-            pose.rotation.k,
-            pose.rotation.w,
-        )) * Mat4::from_scale(block.visual_scale);
-        let _ = state
-            .renderer
-            .scene_mut()
-            .update_object_transform(block.object, transform);
-    }
+    sync_tower_visuals(state);
 }
 
 fn main() {

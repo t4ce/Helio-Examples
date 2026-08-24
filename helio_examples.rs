@@ -1,14 +1,15 @@
 //! Helio Examples Hub.
 //!
-//! `cargo run` opens this compact native control window and starts the HelioV
-//! voxel demo beside it. Selecting an item launches that example from the same
-//! examples workspace, so individual bin names no longer need to be memorized.
+//! `cargo run` opens this compact native control window.
+//! Selecting an item launches that example from the same examples workspace, so
+//! individual bin names no longer need to be memorized.
 
 use std::path::PathBuf;
 use std::process::Command;
 
 const DEMOS: &[(&str, &str)] = &[
     ("HelioV voxel flycam", "heliov_flycam"),
+    ("Cloud Engine", "cloud_engine"),
     ("Voxel mesh world", "voxel_demo"),
     ("Voxel raymarch world", "voxel_demo_raymarch"),
     ("Planet voxel", "planet_voxel_demo"),
@@ -30,9 +31,15 @@ const DEMOS: &[(&str, &str)] = &[
     ("VR desktop mirror", "vr_demo"),
 ];
 
+const CLOUD_PRESETS: &[(&str, &str)] = &[
+    ("Verdant moon", "verdant"),
+    ("Blue porcelain", "porcelain"),
+    ("Amber dusk", "ember"),
+    ("Violet night", "violet"),
+];
+
 struct ExamplesHub {
     workspace: PathBuf,
-    started_voxel_demo: bool,
     status: String,
 }
 
@@ -53,17 +60,51 @@ impl ExamplesHub {
             Err(error) => format!("Could not start {bin}: {error}"),
         };
     }
+
+    fn launch_with_args(&mut self, bin: &str, args: &[&str]) {
+        let executable = self.workspace.join("target").join("debug").join(bin);
+        let result = if executable.is_file() {
+            Command::new(&executable).args(args).spawn()
+        } else {
+            let mut command = Command::new("cargo");
+            command.args(["run", "--bin", bin]);
+            if !args.is_empty() {
+                command.arg("--");
+            }
+            command.args(args);
+            command.current_dir(&self.workspace).spawn()
+        };
+
+        self.status = match result {
+            Ok(_) => format!("Started {bin}"),
+            Err(error) => format!("Could not start {bin}: {error}"),
+        };
+    }
 }
 
 impl eframe::App for ExamplesHub {
     fn ui(&mut self, ui: &mut eframe::egui::Ui, _: &mut eframe::Frame) {
-        if !self.started_voxel_demo {
-            self.started_voxel_demo = true;
-            self.launch("heliov_flycam");
-        }
-
         ui.heading("Helio Examples");
-        ui.label("The voxel flycam runs beside this control window.");
+        ui.label("Nothing auto-starts. Pick a demo to launch.");
+        ui.separator();
+
+        ui.collapsing("Cloud Engine presets (bypass settings window)", |ui| {
+            if ui.button("Launch Cloud Engine (default)").clicked() {
+                self.launch_with_args(
+                    "cloud_engine",
+                    &["--preset", "porcelain"],
+                );
+            }
+            for &(label, preset) in CLOUD_PRESETS {
+                if ui.button(format!("Launch Cloud Engine — {label}")).clicked() {
+                    self.launch_with_args(
+                        "cloud_engine",
+                        &["--preset", preset],
+                    );
+                }
+            }
+        });
+
         ui.separator();
         eframe::egui::ScrollArea::vertical().show(ui, |ui| {
             for &(label, bin) in DEMOS {
@@ -79,6 +120,7 @@ impl eframe::App for ExamplesHub {
 
 fn main() -> eframe::Result {
     let workspace = std::env::current_dir().expect("examples working directory");
+
     eframe::run_native(
         "Helio Examples",
         eframe::NativeOptions {
@@ -90,8 +132,7 @@ fn main() -> eframe::Result {
         Box::new(move |_| {
             Ok(Box::new(ExamplesHub {
                 workspace,
-                started_voxel_demo: false,
-                status: "Starting HelioV voxel flycam…".to_owned(),
+                status: "Ready.".to_owned(),
             }))
         }),
     )

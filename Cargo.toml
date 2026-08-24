@@ -218,6 +218,10 @@ name = "heliov_flycam"
 path = "heliov_flycam.rs"
 
 [[bin]]
+name = "cloud_engine"
+path = "cloud_engine.rs"
+
+[[bin]]
 name = "voxel_demo_raymarch"
 path = "voxel/raymarch_demo.rs"
 
