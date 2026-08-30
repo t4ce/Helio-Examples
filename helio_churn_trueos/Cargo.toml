@@ -1,0 +1,32 @@
+[package]
+name = "helio_churn_trueos"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[package.metadata.trueos-blueprint]
+replicatable = true
+
+[lib]
+name = "helio_churn_trueos"
+path = "src/lib.rs"
+
+[[bin]]
+name = "helio_churn_trueos"
+path = "src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+libm = { version = "0.2", default-features = false }
+trueos = { path = "../../TRUEOS-Blueprints/api", features = ["default-global-allocator", "default-panic-handler", "ui4-scene"] }
+trueos-helio-artifact = { path = "../../TRUEOS/crates/trueos-helio-artifact" }
+trueos-helio-runtime = { path = "../../TRUEOS/crates/trueos-helio-runtime" }
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[workspace]

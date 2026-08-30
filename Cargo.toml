@@ -2,7 +2,7 @@
 name = "examples"
 version = "0.1.0"
 edition = "2021"
-workspace = "../Helio"
+workspace = "../helio"
 default-run = "helio_examples"
 
 [lib]
@@ -283,7 +283,7 @@ path = "vr/main.rs"
 [dependencies]
 helio = { workspace = true, features = ["bake"] }
 helio-controls = { workspace = true, features = ["winit"] }
-helio-artifact = { path = "../Helio/crates/helio-artifact" }
+helio-artifact = { path = "../helio/crates/helio-artifact" }
 helio-core = { workspace = true }
 libhelio = { workspace = true }
 helio-pass-sprite-batch = { workspace = true }
@@ -293,21 +293,21 @@ helio-pass-radiance-cascades-2d = { workspace = true }
 helio-xr = { workspace = true }
 helio-asset-compat = { workspace = true }
 helio-pass-tsr = { workspace = true }
-helio-pass-fxaa = { path = "../Helio/crates/passes/3d/helio-pass-fxaa" }
+helio-pass-fxaa = { path = "../helio/crates/passes/3d/helio-pass-fxaa" }
 helio-pass-corona = { workspace = true }
-helio-pass-decal = { path = "../Helio/crates/passes/3d/helio-pass-decal" }
-helio-pass-debug-overlay = { path = "../Helio/crates/passes/3d/helio-pass-debug-overlay" }
-helio-pass-perf-overlay = { path = "../Helio/crates/passes/3d/helio-pass-perf-overlay" }
-helio-pass-postprocess = { path = "../Helio/crates/passes/3d/helio-pass-postprocess" }
-helio-pass-voxel-raymarch = { path = "../Helio/crates/passes/3d/helio-pass-voxel-raymarch" }
-helio-pass-voxel-mesh = { path = "../Helio/crates/passes/3d/helio-pass-voxel-mesh" }
+helio-pass-decal = { path = "../helio/crates/passes/3d/helio-pass-decal" }
+helio-pass-debug-overlay = { path = "../helio/crates/passes/3d/helio-pass-debug-overlay" }
+helio-pass-perf-overlay = { path = "../helio/crates/passes/3d/helio-pass-perf-overlay" }
+helio-pass-postprocess = { path = "../helio/crates/passes/3d/helio-pass-postprocess" }
+helio-pass-voxel-raymarch = { path = "../helio/crates/passes/3d/helio-pass-voxel-raymarch" }
+helio-pass-voxel-mesh = { path = "../helio/crates/passes/3d/helio-pass-voxel-mesh" }
 helio-pass-planetary-voxel = { workspace = true }
-helio-pass-gbuffer = { path = "../Helio/crates/passes/3d/helio-pass-gbuffer" }
-helio-pass-virtual-geometry = { path = "../Helio/crates/passes/3d/helio-pass-virtual-geometry" }
-helio-voxel-core = { path = "../Helio/crates/helio-voxel-core" }
+helio-pass-gbuffer = { path = "../helio/crates/passes/3d/helio-pass-gbuffer" }
+helio-pass-virtual-geometry = { path = "../helio/crates/passes/3d/helio-pass-virtual-geometry" }
+helio-voxel-core = { path = "../helio/crates/helio-voxel-core" }
 helio-planet-voxel-core = { workspace = true }
-helio-default-graphs = { path = "../Helio/crates/helio-default-graphs" }
-helio-pass-water-sim = { path = "../Helio/crates/passes/3d/helio-pass-water-sim" }
+helio-default-graphs = { path = "../helio/crates/helio-default-graphs" }
+helio-pass-water-sim = { path = "../helio/crates/passes/3d/helio-pass-water-sim" }
 rapier3d = "0.24"
 image = { workspace = true, features = ["png"] }
 bytemuck = { workspace = true }

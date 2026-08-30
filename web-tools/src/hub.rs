@@ -39,7 +39,9 @@ const ENTRIES: &[Entry] = &[
         label: "Cloud Engine",
         package: "examples",
         bin: "cloud_engine",
-        args: &["--preset", "porcelain"],
+        // No static preset: the Cloud Engine defaults to MoonLook, which
+        // continuously blends its art direction from the view-camera heading.
+        args: &[],
     },
     demo!("Voxel mesh world", "voxel_demo"),
     demo!("Voxel raymarch world", "voxel_demo_raymarch"),

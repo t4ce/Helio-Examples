@@ -50,7 +50,7 @@ ies_demo            = []
 
 # ── dependencies ─────────────────────────────────────────────────────────────
 [dependencies]
-helio-wasm          = { path = "../../Helio/crates/helio-wasm" }
+helio-wasm          = { path = "../../helio/crates/helio-wasm" }
 helio               = { workspace = true }
 helio-core          = { workspace = true }
 helio-default-graphs = { workspace = true }
